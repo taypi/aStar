@@ -1,14 +1,15 @@
 #!/usr/bin/python3
+from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 
 import sys
 from PyQt5.QtWidgets import (QWidget, QGridLayout,
     QPushButton, QApplication)
     
-class WindowSapper(QtWidgets.QMainWindow):
+class Grid(QWidget):
 
-    def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self,parent)
+    def __init__(self):
+        super().__init__()
         self.resize(450,350)
         self.centralwidget = QtGui.QWidget()
         self.setCentralWidget(self.centralwidget)
@@ -39,3 +40,10 @@ class WindowSapper(QtWidgets.QMainWindow):
                 self.gridLayout.setColumnMinimumWidth(j, 40)
             self.buttons.append(l)
             self.gridLayout.setRowMinimumHeight(i, 26)
+
+        self.show()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Grid()
+    sys.exit(app.exec_())
