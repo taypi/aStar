@@ -1,4 +1,11 @@
-class WindowSapper(QtGui.QMainWindow):
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+import sys
+from PyQt5.QtWidgets import (QWidget, QGridLayout,
+    QPushButton, QApplication)
+    
+class WindowSapper(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self,parent)
