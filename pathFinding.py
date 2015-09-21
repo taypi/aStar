@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 import sys
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QStyleFactory, QGridLayout,
-    QPushButton, QApplication, QFrame)
+    QPushButton, QApplication, QLineEdit, QFrame, QLabel, QVBoxLayout)
 from PyQt5.QtCore import Qt
 
 class PathFinder(QWidget):
@@ -23,13 +23,13 @@ class PathFinder(QWidget):
         splitter.addWidget(right)
 
         box.addWidget(splitter)
-
         self.setLayout(box)
         self.setWindowTitle('Path Finder')
-        self.showFullScreen()
         self.show()
         
 class Grid(QFrame):
+
+    __cost = 1
 
     def __init__(self):
         super().__init__()
@@ -106,14 +106,36 @@ class Grid(QFrame):
 
         return neighbors
 
+    # def setCost(self, cost):
+        # self.__cost = cost
+
 class Settings(QFrame):
     def __init__(self):
         super().__init__()
         self.initUI()
 
     def initUI(self):
-        btnSend = QPushButton('Send', self)
-        btnSend.move(300,300)      
+        box = QVBoxLayout(self)
+        lblH = QLabel('Horizontal')
+        self.costH = QLineEdit()
+        lblV = QLabel('Vertical')
+        self.costV = QLineEdit()
+        lblD = QLabel('Diagonal')
+        self.costD = QLineEdit()
+        box.addWidget(lblH)
+        box.addWidget(self.costH)
+        box.addWidget(lblV)
+        box.addWidget(self.costV)
+        box.addWidget(lblD)
+        box.addWidget(self.costD)
+
+        self.btnSend = QPushButton('Send', self)
+        self.btnSend.clicked.connect(self.sendClicked)
+        box.addWidget(self.btnSend)
+
+    def sendClicked(self):
+        value = self.costH.text()
+        print(value)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

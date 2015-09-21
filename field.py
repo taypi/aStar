@@ -5,8 +5,9 @@ from __future__ import unicode_literals
 """
 ZetCode PyQt5 tutorial 
 
-This example shows
-how to use QSplitter widget.
+This example shows text which 
+is entered in a QLineEdit
+in a QLabel widget.
  
 author: Jan Bodnar
 website: zetcode.com 
@@ -14,9 +15,8 @@ last edited: January 2015
 """
 
 import sys
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame, 
-    QSplitter, QStyleFactory, QApplication)
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QWidget, QLabel, 
+    QLineEdit, QApplication)
 
 
 class Example(QWidget):
@@ -29,30 +29,16 @@ class Example(QWidget):
         
     def initUI(self):      
 
-        hbox = QHBoxLayout(self)
-
-        topleft = QFrame(self)
-        topleft.setFrameShape(QFrame.StyledPanel)
- 
-        topright = QFrame(self)
-        topright.setFrameShape(QFrame.StyledPanel)
-
-        bottom = QFrame(self)
-        bottom.setFrameShape(QFrame.StyledPanel)
-
-        splitter1 = QSplitter(Qt.Horizontal)
-        splitter1.addWidget(topleft)
-        splitter1.addWidget(topright)
-
-        splitter2 = QSplitter(Qt.Vertical)
-        splitter2.addWidget(splitter1)
-        splitter2.addWidget(bottom)
-
-        hbox.addWidget(splitter2)
-        self.setLayout(hbox)
+        self.lbl = QLabel(self)
+        qle = QLineEdit(self)
         
-        self.setGeometry(300, 300, 300, 200)
-        self.setWindowTitle('QSplitter')
+        qle.move(60, 100)
+        self.lbl.move(60, 40)
+
+        qle.textChanged[str].connect(self.onChanged)
+        
+        self.setGeometry(300, 300, 280, 170)
+        self.setWindowTitle('QLineEdit')
         self.show()
         
         
@@ -66,4 +52,4 @@ if __name__ == '__main__':
     
     app = QApplication(sys.argv)
     ex = Example()
-    sys.exit(app.exec_()) 
+    sys.exit(app.exec_())
