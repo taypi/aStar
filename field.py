@@ -2,48 +2,68 @@
 from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 
-import sys
-from PyQt5.QtWidgets import (QWidget, QGridLayout,
-    QPushButton, QApplication)
-    
-class Grid(QWidget):
+"""
+ZetCode PyQt5 tutorial 
 
+This example shows
+how to use QSplitter widget.
+ 
+author: Jan Bodnar
+website: zetcode.com 
+last edited: January 2015
+"""
+
+import sys
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame, 
+    QSplitter, QStyleFactory, QApplication)
+from PyQt5.QtCore import Qt
+
+
+class Example(QWidget):
+    
     def __init__(self):
         super().__init__()
-        self.resize(450,350)
-        self.centralwidget = QtGui.QWidget()
-        self.setCentralWidget(self.centralwidget)
+        
+        self.initUI()
+        
+        
+    def initUI(self):      
 
-        self.vLayout = QtGui.QVBoxLayout(self.centralwidget)
-        self.hLayout = QtGui.QHBoxLayout()
+        hbox = QHBoxLayout(self)
 
-        self.gridLayout = QtGui.QGridLayout()
-        self.gridLayout.setSpacing(0)
+        topleft = QFrame(self)
+        topleft.setFrameShape(QFrame.StyledPanel)
+ 
+        topright = QFrame(self)
+        topright.setFrameShape(QFrame.StyledPanel)
 
-        # center the grid with stretch on both sides
-        self.hLayout.addStretch(1)
-        self.hLayout.addLayout(self.gridLayout)
-        self.hLayout.addStretch(1)
+        bottom = QFrame(self)
+        bottom.setFrameShape(QFrame.StyledPanel)
 
-        self.vLayout.addLayout(self.hLayout)
-        # push grid to the top of the window
-        self.vLayout.addStretch(1)
+        splitter1 = QSplitter(Qt.Horizontal)
+        splitter1.addWidget(topleft)
+        splitter1.addWidget(topright)
 
-        self.buttons = []
-        for i in xrange(10):
-            l=[]
-            for j in xrange(10):
-                b=QtGui.QPushButton()
-                b.setFixedSize(40,30)
-                l.append(b)
-                self.gridLayout.addWidget(b, i, j)
-                self.gridLayout.setColumnMinimumWidth(j, 40)
-            self.buttons.append(l)
-            self.gridLayout.setRowMinimumHeight(i, 26)
+        splitter2 = QSplitter(Qt.Vertical)
+        splitter2.addWidget(splitter1)
+        splitter2.addWidget(bottom)
 
+        hbox.addWidget(splitter2)
+        self.setLayout(hbox)
+        
+        self.setGeometry(300, 300, 300, 200)
+        self.setWindowTitle('QSplitter')
         self.show()
-
+        
+        
+    def onChanged(self, text):
+        
+        self.lbl.setText(text)
+        self.lbl.adjustSize()        
+        
+        
 if __name__ == '__main__':
+    
     app = QApplication(sys.argv)
-    ex = Grid()
-    sys.exit(app.exec_())
+    ex = Example()
+    sys.exit(app.exec_()) 
