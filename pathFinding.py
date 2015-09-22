@@ -106,8 +106,9 @@ class Grid(QFrame):
 
         return neighbors
 
-    # def setCost(self, cost):
-        # self.__cost = cost
+    def setCost(self, cost):
+        self.__cost = cost
+        print(self.__cost)
 
 class Settings(QFrame):
     def __init__(self):
@@ -135,7 +136,7 @@ class Settings(QFrame):
 
     def sendClicked(self):
         value = self.costH.text()
-        print(value)
+        Grid().setCost(value)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
