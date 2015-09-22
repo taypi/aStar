@@ -14,7 +14,7 @@ class PathFinder(QWidget):
 
         left = Grid()
         left.setFrameShape(QFrame.StyledPanel)
- 
+
         right = Settings()
         right.setFrameShape(QFrame.StyledPanel)
 
@@ -26,10 +26,56 @@ class PathFinder(QWidget):
         self.setLayout(box)
         self.setWindowTitle('Path Finder')
         self.show()
-        
+
+        print(left.getNeighbors(Land.begin))
+
+class Land(QPushButton):
+    colorMap = {'Edge': 'gray', 'Default': 'green', 'Wall': 'gray', 'Begin': 'red', 'Finish': 'blue'}
+    flagBegin = False
+    flagFinish = False
+    finish = 0
+    begin = 0
+
+    def __init__(self, position, kind):
+        super().__init__('')
+        self.position = position
+        self.setKind(kind)
+        self.setFixedSize(30,30)
+        self.clicked.connect(self.landClicked)
+
+    def landClicked(self):
+        if self.kind == "Begin":
+            Land.flagBegin = True
+            Land.flagFinish = False
+        elif self.kind == "Finish":
+            Land.flagFinish = True
+            Land.flagBegin = False
+        elif self.kind != "Edge":
+            if Land.flagBegin:
+                Land.begin.setKind("Default")
+                self.setKind("Begin")
+                Land.begin = self
+                Land.flagBegin = False
+            elif Land.flagFinish:
+                Land.finish.setKind("Default")
+                self.setKind("Finish")
+                Land.finish = self
+                Land.flagFinish = False
+            elif self.kind == "Wall":
+                self.setKind("Default")
+            elif self.kind == "Default":
+                self.setKind("Wall")
+        print(self.position)
+
+    def setKind(self,kind):
+        self.kind = kind
+        self.setStyleSheet("background-color:" + self.colorMap[kind])
+
+
 class Grid(QFrame):
 
-    __cost = 1
+    #custo = [Horizonta, Vertical, Diagonal]
+    cost = [1,1,1]
 
     def __init__(self):
         super().__init__()
@@ -43,72 +89,47 @@ class Grid(QFrame):
 
         self.setLayout(self.map)
 
-        positions = [(i,j) for i in range(20) for j in range(20)]
+        height = 20
+        width = 20
+
+        positions = [(i,j) for i in range(width) for j in range(height)]
 
         for position in positions:
-            land = QPushButton('')
-            land.setFixedSize(30,30)
+            if position[0] == width - 1 or position[0] == 0 or position[1] == height - 1 or position[1] == 0 :
+                land = Land(position,'Edge')
+            else:
+                land = Land(position,'Default')
             self.map.addWidget(land, *position)
-            if (position == (0,0)):
-                self.begin = land
-                self.begin.flag = False
-                land.cat = 0
-                land.setStyleSheet("background-color: red")
-            elif (position == (9,9)):
-                self.finish = land
-                self.finish.flag = False
-                land.cat = 1
-                land.setStyleSheet("background-color: blue")
-            else:
-                land.cat = 2
-                land.setStyleSheet("background-color: green")
-            land.cost = 1
-            land.clicked.connect(self.landClicked)
 
-    def landClicked(self):
-        land = self.sender()
-        if (land.cat == 2):
-            if (self.begin.flag):
-                land.setStyleSheet("background-color: red")
-                self.begin.setStyleSheet("background-color: green")
-                self.begin.cat = 2
-                self.begin = land
-                self.begin.cat = 0
-                self.begin.flag = False
-            elif (self.finish.flag):
-                land.setStyleSheet("background-color: blue")
-                self.finish.setStyleSheet("background-color: green")
-                self.finish.cat = 2
-                self.finish = land
-                self.finish.cat = 1
-                self.finish.flag = False
-            elif land.cost < 10000:
-                land.setStyleSheet("background-color: gray")
-                land.cost = 10000
-            else:
-                land.setStyleSheet("background-color: green")
-                land.cost = 1
-        else:
-            if (land.cat == 0):
-                self.begin.flag = True
-            elif (land.cat == 1):
-                self.finish.flag = True
-        idx = self.map.indexOf(land)
-        location = self.map.getItemPosition(idx)
-        print (location[:2], "-", land.cost)
-        print (self.getNeighbors(land), "-", land)
+        Land.finish = self.getLand(width - 2 , height - 2)
+        Land.finish.setKind("Finish")
+        Land.begin = self.getLand(1,1)
+        # self.getLand(0,0).setKind("Begin")
+        Land.begin.setKind("Begin")
+        # print(self.getNeighbors(land))
 
-    def getNeighbors(self, land):
+    def getLand(self, x, y):
+        return self.map.itemAtPosition(x, y).widget()
+
+    def getNeighbors(self,land):
         neighbors = []
-        location = self.map.getItemPosition(self.map.indexOf(land))
-        
-        neighbors.append(land)
-
+        # x = land.position[0]-1
+        # y = land.position[1]-1
+        # a = self.getLand(x,y)
+        # neighbors.append(a)
+        neighbors.append(self.getLand(land.position[0]-1, land.position[1]-1))
+        neighbors.append(self.getLand(land.position[0]-1, land.position[1]))
+        neighbors.append(self.getLand(land.position[0]-1, land.position[1]+1))
+        neighbors.append(self.getLand(land.position[0], land.position[1]-1))
+        neighbors.append(self.getLand(land.position[0], land.position[1]+1))
+        neighbors.append(self.getLand(land.position[0]+1, land.position[1]-1))
+        neighbors.append(self.getLand(land.position[0]+1, land.position[1]))
+        neighbors.append(self.getLand(land.position[0]+1, land.position[1]+1))
         return neighbors
 
     def setCost(self, cost):
-        self.__cost = cost
-        print(self.__cost)
+        self.cost = cost
+        print(self.cost)
 
 class Settings(QFrame):
     def __init__(self):
@@ -135,11 +156,11 @@ class Settings(QFrame):
         box.addWidget(self.btnSend)
 
     def sendClicked(self):
-        value = self.costH.text()
+        value = [self.costH.text(), self.costV.text(), self.costD.text()]
         Grid().setCost(value)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     draw = PathFinder()
-    sys.exit(app.exec_())        
+    sys.exit(app.exec_())
 
