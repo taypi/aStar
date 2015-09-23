@@ -2,10 +2,12 @@
 from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, sip
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QStyleFactory, QGridLayout,
-    QPushButton, QApplication, QLineEdit, QFrame, QLabel, QVBoxLayout, QMainWindow)
-from PyQt5.QtCore import (Qt, pyqtSignal, QObject)
+     QPushButton, QApplication, QLineEdit, QFrame, QLabel, QVBoxLayout, QMainWindow,
+     QMessageBox)
+from PyQt5.QtGui import (QIntValidator)
+from PyQt5.QtCore import (Qt, pyqtSignal, QObject, QSize)
 
 from heapq import *
 
@@ -14,33 +16,54 @@ class Communicate(QObject):
 
 class PathFinder(QWidget):
     c = Communicate()
+    width = 20
+    height = 20
     def __init__(self):
         super().__init__()
-        box = QHBoxLayout(self)
+        self.box = QHBoxLayout(self)
 
-        self.grid = Grid()
+        self.grid = Grid(self.width, self.height)
         self.grid.setFrameShape(QFrame.StyledPanel)
 
-        right = Settings()
-        right.setFrameShape(QFrame.StyledPanel)
+        self.right = Settings()
+        self.right.setFrameShape(QFrame.StyledPanel)
 
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(self.grid)
-        splitter.addWidget(right)
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.addWidget(self.grid)
+        self.splitter.addWidget(self.right)
 
-        box.addWidget(splitter)
-        self.setLayout(box)
+        self.box.addWidget(self.splitter)
+        self.setLayout(self.box)
         self.setWindowTitle('Path Finder')
-        self.show()
-
 
         self.reDo()
         self.c.landChanged.connect(self.reDo)
 
+        self.show()
+
     def reDo(self):
-        self.grid.clean()
+        if self.grid.width != self.width or self.grid.height != self.height:            
+            self.destroy()
+            self.grid.width = self.width
+            self.grid.height = self.height
+            self.grid.initUI()
+            self.resize(QSize(0, 0))
+        else: 
+            self.grid.clean()
+
         came_from, cost_so_far = self.aStar(self.grid)
         self.backTrack(self.grid, came_from)
+
+    def destroy(self):
+        for position in Grid.positions:
+            (x,y) = position
+            landT = self.grid.map.itemAtPosition(x, y)
+            if landT is not None:
+                land = landT.widget()
+                if land is not None:
+                    self.grid.map.removeWidget(land)
+                    land.deleteLater()
+
 
     def heuristic(self, a, b):
         (x1, y1) = a
@@ -77,6 +100,14 @@ class PathFinder(QWidget):
                         current[1].setColor("DarkSlateGray")
         return came_from, cost_so_far
 
+    def dfs(self, grid):
+        has_crossed = []
+        has_finded = []
+
+        has_crossed.stack(grid.begin)
+        has_finded.stack(grid.begin)
+
+
     def backTrack(self, grid, came_from):
         if grid.finish in came_from:
             land = grid.finish
@@ -84,8 +115,12 @@ class PathFinder(QWidget):
                 came_from[land].setColor("black")
                 land = came_from[land]
 
+    def setSize(width, height):
+        PathFinder.width = width
+        PathFinder.height = height
+
 class Land(QPushButton):
-    colorMap = {'Edge': ('gray', 9999999), 'Default': ('green', 1), 'Wall': ('gray', 9999999), 'Begin': ('red', 1), 'Finish': ('blue',1)}
+    colorMap = {'Edge': ('gray', 9999999), 'Default': ('green', 0), 'Wall': ('gray', 9999999), 'Begin': ('red', 0), 'Finish': ('blue',0)}
 
     def __init__(self, position, kind):
         super().__init__('')
@@ -115,40 +150,43 @@ class Grid(QFrame):
     cost = [1,1,1]
     envCost = 0
     positions = 0
+    width = 20
+    height = 20
 
-    def __init__(self):
+    def __init__(self, w, h):
         super().__init__()
-        self.initUI()
+        Grid.width = w
+        Grid.height = h
 
-    def initUI(self):
-        
         self.map = QGridLayout()
         self.map.setHorizontalSpacing(0)
         self.map.setVerticalSpacing(0)
-
         self.setLayout(self.map)
+        
+        self.initUI()
 
-        height = 20
-        width = 20
+    def initUI(self):
 
-        Grid.positions = [(i,j) for i in range(width) for j in range(height)]
-
+        Grid.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
+        
         for position in Grid.positions:
             if position[0] == 10 and position[1] < 15:
                 land = Land(position, 'Wall')
-            elif position[0] == width - 1 or position[0] == 0 or position[1] == height - 1 or position[1] == 0 :
+            elif position[0] == self.width - 1 or position[0] == 0 or position[1] == self.height - 1 or position[1] == 0 :
                 land = Land(position,'Edge')
             else:
                 land = Land(position,'Default')
             self.map.addWidget(land, *position)
             land.clicked.connect(self.landClicked)
 
-        self.finish = self.getLand(width - 2 , height - 2)
+        self.finish = self.getLand(self.width - 2 , self.height - 2)
         # self.finish = self.getLand(18 ,15)
         self.finish.setKind("Finish")
 
         self.begin = self.getLand(1,1)
         self.begin.setKind("Begin")
+
+        self.resize(QSize(0, 0))
 
     def getLand(self, x, y):
         return self.map.itemAtPosition(x, y).widget()
@@ -165,8 +203,9 @@ class Grid(QFrame):
         neighbors.append(self.getLand(land.position[0]+1, land.position[1]+1))
         return neighbors
 
-    def setCost(self, cost):
+    def setCost(cost):
         Grid.cost = cost
+
 
     def getCost(self, land1, land2):
         if land1.position[0] - land2.position[0] == 0:
@@ -217,16 +256,37 @@ class Settings(QFrame):
 
     def initUI(self):
         box = QVBoxLayout(self)
+        validator = QIntValidator(1, 999)
+        validatorSize = QIntValidator(1, 40)
+
+
+        lblWidth = QLabel('Width')
+        self.width = QLineEdit('20')
+        self.width.setValidator(validatorSize)
+        box.addWidget(lblWidth)
+        box.addWidget(self.width)
+
+        lblHeight = QLabel('Height')
+        self.height = QLineEdit('20')
+        self.height.setValidator(validatorSize)
+        box.addWidget(lblHeight)
+        box.addWidget(self.height)
+
         lblH = QLabel('Horizontal')
-        self.costH = QLineEdit()
-        lblV = QLabel('Vertical')
-        self.costV = QLineEdit()
-        lblD = QLabel('Diagonal')
-        self.costD = QLineEdit()
+        self.costH = QLineEdit('1')
+        self.costH.setValidator(validator)
         box.addWidget(lblH)
         box.addWidget(self.costH)
+
+        lblV = QLabel('Vertical')
+        self.costV = QLineEdit('1')
+        self.costV.setValidator(validator)
         box.addWidget(lblV)
         box.addWidget(self.costV)
+
+        lblD = QLabel('Diagonal')
+        self.costD = QLineEdit('1')
+        self.costD.setValidator(validator)
         box.addWidget(lblD)
         box.addWidget(self.costD)
 
@@ -235,9 +295,19 @@ class Settings(QFrame):
         box.addWidget(self.btnSend)
 
     def sendClicked(self):
-        value = [int(self.costH.text()), int(self.costV.text()), int(self.costD.text())]
-        Grid().setCost(value)
-        PathFinder.c.landChanged.emit()
+        if (self.costH.text() != '' and self.costV.text() != '' and self.costD.text() != '' and
+            self.width.text() != '' and self.height.text() != ''):
+            value = [int(self.costH.text()), int(self.costV.text()), int(self.costD.text())]
+            Grid.setCost(value)
+            if int(self.width.text()) > 3 and int(self.height.text()) > 3:
+                PathFinder.setSize(int(self.width.text()), int(self.height.text()))
+            else:
+                QMessageBox.question(self, 'ERRO:',
+                "Width and Height has to be bigger than 3!", QMessageBox.Ok)
+            PathFinder.c.landChanged.emit()
+        else:
+            QMessageBox.question(self, 'ERRO:',
+            "Some field is blank!", QMessageBox.Ok)
 
     
 
@@ -245,4 +315,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     draw = PathFinder()
     sys.exit(app.exec_())
-
