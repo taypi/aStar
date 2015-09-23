@@ -19,37 +19,19 @@ from PyQt5.QtWidgets import (QWidget, QLabel,
     QLineEdit, QApplication)
 
 
-class Example(QWidget):
-    
-    def __init__(self):
-        super().__init__()
-        
-        self.initUI()
-        
-        
-    def initUI(self):      
+class Example():
+  varTest = "1"  
 
-        self.lbl = QLabel(self)
-        qle = QLineEdit(self)
-        
-        qle.move(60, 100)
-        self.lbl.move(60, 40)
+  def setVar(self,string):
+    Example.varTest = string
 
-        qle.textChanged[str].connect(self.onChanged)
-        
-        self.setGeometry(300, 300, 280, 170)
-        self.setWindowTitle('QLineEdit')
-        self.show()
-        
-        
-    def onChanged(self, text):
-        
-        self.lbl.setText(text)
-        self.lbl.adjustSize()        
-        
-        
+  def getVar(self):
+    return Example.varTest
+
 if __name__ == '__main__':
-    
-    app = QApplication(sys.argv)
     ex = Example()
-    sys.exit(app.exec_())
+    print (ex.getVar())
+    ab = Example()
+    ab.setVar(2)
+    print (ex.getVar())
+    print (ab.getVar())
