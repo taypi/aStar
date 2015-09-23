@@ -17,7 +17,7 @@ last edited: January 2015
 import sys
 from PyQt5.QtWidgets import (QWidget, QLabel, 
     QLineEdit, QApplication)
-
+from heapq import *
 
 class Example():
   varTest = "1"  
@@ -29,9 +29,14 @@ class Example():
     return Example.varTest
 
 if __name__ == '__main__':
-    ex = Example()
-    print (ex.getVar())
-    ab = Example()
-    ab.setVar(2)
-    print (ex.getVar())
-    print (ab.getVar())
+    frontier = []
+    for i in range(1,10):
+        heappush(frontier,("a",i))
+    while frontier:
+      print (heappop(frontier))
+    # ex = Example()
+    # print (ex.getVar())
+    # ab = Example()
+    # ab.setVar(2)
+    # print (ex.getVar())
+    # print (ab.getVar())

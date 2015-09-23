@@ -29,7 +29,7 @@ class PathFinder(QWidget):
         self.setWindowTitle('Path Finder')
         self.show()
 
-        # print(self.aStar(grid))
+        print(self.aStar(grid))
         print(grid.getNeighbors(grid.begin))
     
     def heuristic(a, b):
@@ -39,7 +39,7 @@ class PathFinder(QWidget):
 
     def aStar(self, grid):
         frontier = []
-        heappush(frontier,(grid.begin,0))
+        heappush(frontier,(0, grid.begin))
         came_from = {}
         cost_so_far = {}
         cost_so_far[grid.begin] = 0
@@ -47,16 +47,18 @@ class PathFinder(QWidget):
         while frontier:
             current = heappop(frontier)
 
-            if current == grid.finish:
+            if current[1] == grid.finish:
                 break
             
-            for next in grid.getNeighbors(current):
-                new_cost = cost_so_far[current] + graph.cost(current, next)
+            for next in grid.getNeighbors(current[1]):
+                new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next)
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
-                    priority = new_cost + heuristic(goal, next)
-                    frontier.put(next, priority)
-                    came_from[next] = current
+                    priority = new_cost + PathFinder.heuristic(grid.finish.position, next.position)      
+                    print("!!!!!!!!!!!!! priority: ", priority)
+                    heappush(frontier,(priority, next))
+                    print("!!!!!!!!!!!!! passu: ")
+                    came_from[next] = current[1]
         return came_from, cost_so_far
 
 class Land(QPushButton):
@@ -72,13 +74,16 @@ class Land(QPushButton):
         self.kind = kind
         self.setStyleSheet("background-color:" + self.colorMap[kind])
 
+    def __lt__(self, other):
+        return self.position < other.position
+
 
 class Grid(QFrame):
     finish = 0
     begin = 0
     flagBegin = False
     flagFinish = False
-    #custo = [Horizonta, Vertical, Diagonal]
+    #custo = [Horizontal, Vertical, Diagonal]
     cost = [1,1,1]
 
     def __init__(self):
@@ -117,6 +122,7 @@ class Grid(QFrame):
 
     def getNeighbors(self,land):
         neighbors = []
+        print (land.position[0])
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]-1))
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]))
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]+1))
@@ -130,6 +136,16 @@ class Grid(QFrame):
     def setCost(self, cost):
         self.cost = cost
         print(self.cost)
+
+    def getCost(self, land1, land2):
+        if land1.position[0] - land2.position[0] == 0:
+            return self.cost[1]
+        else:
+            if land1.position[1] - land2.position[1] == 0:
+                return self.cost[0]
+            else:
+                return self.cost[2]
+                
 
     def landClicked(self):
         land = self.sender()
