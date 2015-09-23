@@ -51,7 +51,9 @@ class PathFinder(QWidget):
         else: 
             self.grid.clean()
 
-        came_from, cost_so_far = self.aStar(self.grid)
+        # came_from, cost_so_far = self.aStar(self.grid)
+        # self.backTrack(self.grid, came_from)
+        came_from, to_cross = self.dfs(self.grid)
         self.backTrack(self.grid, came_from)
 
     def destroy(self):
@@ -100,20 +102,53 @@ class PathFinder(QWidget):
                         current[1].setColor("DarkSlateGray")
         return came_from, cost_so_far
 
-    def dfs(self, grid):
-        has_crossed = []
-        has_finded = []
-
-        has_crossed.stack(grid.begin)
-        has_finded.stack(grid.begin)
-
-
     def backTrack(self, grid, came_from):
         if grid.finish in came_from:
             land = grid.finish
             while came_from[land] != grid.begin:
                 came_from[land].setColor("black")
                 land = came_from[land]
+
+    def dfs(self, grid):
+        crossed = [] #l
+        to_cross = [] #q
+        best_path = []
+        came_from = {}
+        cost_so_far = {}
+        cost_so_far[grid.begin] = 0
+        cost_of_best_path = 0
+
+        # Precisa adicionar antes? ainda nem processou!
+        crossed.append(grid.begin)
+        to_cross.append(grid.begin)
+
+        while to_cross:
+            land = to_cross.pop()
+            neighbors = grid.getNeighbors(land)
+
+            for next in neighbors:
+                if next == grid.finish:
+                    came_from[next] = land
+                    cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
+                    next.setText(str(cost_so_far[land]))
+
+                    if not cost_of_best_path or cost_of_best_path > cost_so_far[grid.finish]:
+                        cost_of_best_path = cost_so_far[grid.finish]
+                        best_path = came_from
+                        crossed.pop() #Retira o ultimo
+                        crossed.pop() #Retira o penultimo
+                elif next.kind != 'Wall' and next.kind != 'Edge' and next not in crossed:
+                    crossed.append(next)
+                    to_cross.append(next)
+                    came_from[next] = land
+                    cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
+                    next.setText(str(cost_so_far[land]))
+                    if next != grid.begin:
+                        next.setColor("DarkCyan")
+                elif next.kind != 'Wall' and next.kind != 'Edge':
+                    if next != grid.begin:
+                        next.setColor("DarkSlateGray")
+        return best_path, cost_so_far
 
     def setSize(width, height):
         PathFinder.width = width
