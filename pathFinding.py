@@ -29,9 +29,10 @@ class PathFinder(QWidget):
         self.setWindowTitle('Path Finder')
         self.show()
 
-        print(self.aStar(grid))
-        print(grid.getNeighbors(grid.begin))
-    
+        came_from, cost_so_far = self.aStar(grid)
+        # print("Cost so far: ", cost_so_far)
+        # print(grid.getNeighbors(grid.begin))
+
     def heuristic(a, b):
         (x1, y1) = a
         (x2, y2) = b
@@ -49,30 +50,35 @@ class PathFinder(QWidget):
 
             if current[1] == grid.finish:
                 break
-            
+
             for next in grid.getNeighbors(current[1]):
                 new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next)
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
-                    priority = new_cost + PathFinder.heuristic(grid.finish.position, next.position)      
-                    print("!!!!!!!!!!!!! priority: ", priority)
+                    next.setText(str(new_cost))
+                    priority = new_cost + PathFinder.heuristic(grid.finish.position, next.position)
                     heappush(frontier,(priority, next))
-                    print("!!!!!!!!!!!!! passu: ")
                     came_from[next] = current[1]
+                    next.setColor("DarkCyan")
+                    current[1].setColor("DarkSlateGray")
         return came_from, cost_so_far
 
 class Land(QPushButton):
-    colorMap = {'Edge': 'gray', 'Default': 'green', 'Wall': 'gray', 'Begin': 'red', 'Finish': 'blue'}
+    colorMap = {'Edge': ('gray', 9999999), 'Default': ('green', 1), 'Wall': ('gray', 9999999), 'Begin': ('red', 1), 'Finish': ('blue',1)}
 
     def __init__(self, position, kind):
         super().__init__('')
         self.position = position
         self.setKind(kind)
         self.setFixedSize(30,30)
-        
+
     def setKind(self,kind):
         self.kind = kind
-        self.setStyleSheet("background-color:" + self.colorMap[kind])
+        self.setColor(self.colorMap[kind][0])
+        self.envCost = self.colorMap[kind][1]
+
+    def setColor(self, color):
+        self.setStyleSheet("background-color:" + color + "; color: white;")
 
     def __lt__(self, other):
         return self.position < other.position
@@ -85,6 +91,7 @@ class Grid(QFrame):
     flagFinish = False
     #custo = [Horizontal, Vertical, Diagonal]
     cost = [1,1,1]
+    envCost = 0
 
     def __init__(self):
         super().__init__()
@@ -104,7 +111,9 @@ class Grid(QFrame):
         positions = [(i,j) for i in range(width) for j in range(height)]
 
         for position in positions:
-            if position[0] == width - 1 or position[0] == 0 or position[1] == height - 1 or position[1] == 0 :
+            if position[0] == 10 and position[1] < 15:
+                land = Land(position, 'Wall')
+            elif position[0] == width - 1 or position[0] == 0 or position[1] == height - 1 or position[1] == 0 :
                 land = Land(position,'Edge')
             else:
                 land = Land(position,'Default')
@@ -112,6 +121,7 @@ class Grid(QFrame):
             land.clicked.connect(self.landClicked)
 
         self.finish = self.getLand(width - 2 , height - 2)
+        # self.finish = self.getLand(18 ,15)
         self.finish.setKind("Finish")
 
         self.begin = self.getLand(1,1)
@@ -122,7 +132,6 @@ class Grid(QFrame):
 
     def getNeighbors(self,land):
         neighbors = []
-        print (land.position[0])
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]-1))
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]))
         neighbors.append(self.getLand(land.position[0]-1, land.position[1]+1))
@@ -135,17 +144,16 @@ class Grid(QFrame):
 
     def setCost(self, cost):
         self.cost = cost
-        print(self.cost)
 
     def getCost(self, land1, land2):
         if land1.position[0] - land2.position[0] == 0:
-            return self.cost[1]
+            return self.cost[1] + land2.envCost
         else:
             if land1.position[1] - land2.position[1] == 0:
-                return self.cost[0]
+                return self.cost[0] + land2.envCost
             else:
-                return self.cost[2]
-                
+                return self.cost[2] + land2.envCost
+
 
     def landClicked(self):
         land = self.sender()
@@ -170,7 +178,7 @@ class Grid(QFrame):
                 land.setKind("Default")
             elif land.kind == "Default":
                 land.setKind("Wall")
-        print(land.position)
+        # print(land.position)
 
 class Settings(QFrame):
     def __init__(self):
