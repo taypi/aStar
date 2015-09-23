@@ -5,38 +5,47 @@ from __future__ import unicode_literals
 """
 ZetCode PyQt5 tutorial 
 
-This example shows text which 
-is entered in a QLineEdit
-in a QLabel widget.
- 
+In this example, we connect a signal
+of a QSlider to a slot of a QLCDNumber. 
+
 author: Jan Bodnar
 website: zetcode.com 
 last edited: January 2015
 """
 
 import sys
-from PyQt5.QtWidgets import (QWidget, QLabel, 
-    QLineEdit, QApplication)
-from heapq import *
+from PyQt5.QtCore import (Qt, pyqtSignal, QObject)
+from PyQt5.QtWidgets import (QWidget, QLCDNumber, QSlider, 
+    QVBoxLayout, QApplication)
 
-class Example():
-  varTest = "1"  
 
-  def setVar(self,string):
-    Example.varTest = string
+class Example(QWidget):
+    
+    def __init__(self):
+        super().__init__()
+        
+        self.initUI()
+        
+        
+    def initUI(self):
+        
+        lcd = QLCDNumber(self)
+        sld = QSlider(Qt.Horizontal, self)
 
-  def getVar(self):
-    return Example.varTest
+        vbox = QVBoxLayout()
+        vbox.addWidget(lcd)
+        vbox.addWidget(sld)
+
+        self.setLayout(vbox)
+        sld.valueChanged.connect(lcd.display)
+        
+        self.setGeometry(300, 300, 250, 150)
+        self.setWindowTitle('Signal & slot')
+        self.show()
+        
 
 if __name__ == '__main__':
-    frontier = []
-    for i in range(1,10):
-        heappush(frontier,("a",i))
-    while frontier:
-      print (heappop(frontier))
-    # ex = Example()
-    # print (ex.getVar())
-    # ab = Example()
-    # ab.setVar(2)
-    # print (ex.getVar())
-    # print (ab.getVar())
+    
+    app = QApplication(sys.argv)
+    ex = Example()
+    sys.exit(app.exec_())
