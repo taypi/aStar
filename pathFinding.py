@@ -51,10 +51,10 @@ class PathFinder(QWidget):
         else: 
             self.grid.clean()
 
-        came_from, cost_so_far = self.aStar(self.grid)
-        self.backTrack(self.grid, came_from)
-        # came_from, to_cross = self.dfs(self.grid)
+        # came_from, cost_so_far = self.aStar(self.grid)
         # self.backTrack(self.grid, came_from)
+        came_from = self.dfs(self.grid, self.grid.begin, self.grid.finish)
+        self.backTrack(self.grid, came_from)
 
     def destroy(self):
         for position in Grid.positions:
@@ -115,12 +115,13 @@ class PathFinder(QWidget):
             return path
         for next in grid.getNeighbors(start):
             if next not in path:
-                if shortest = None: or len(path) < len(shortest):
+                if shortest == None or len(path) < len(shortest):
                     newPath = dfs(self, grid, end, path, shortest)
                     if newPath != None:
                         shortest = newPath
         return shortest
-        
+
+
     # def dfs(self, grid):
     #     crossed = [] #l
     #     to_cross = [] #q
@@ -187,7 +188,7 @@ class Land(QPushButton):
     def isValid(self):
         if self.kind != 'Edge' and self.kind != 'Wall':
             return True
-        else
+        else:
             return False
 
     def __lt__(self, other):
