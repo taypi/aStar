@@ -28,20 +28,19 @@ class Example(QWidget):
         
         
     def initUI(self):
-        
-        lcd = QLCDNumber(self)
-        sld = QSlider(Qt.Horizontal, self)
+        path1 = []
+        start = "a"
+        path1.append(start)
+        path1.append("b")
+        path1.append("c")
+        print(path1)
 
-        vbox = QVBoxLayout()
-        vbox.addWidget(lcd)
-        vbox.addWidget(sld)
+        path2 = []
+        path2 = path2 + [start]
+        path2 = path2 + ["b"]
+        path2 = path2 + ["c"]
+        print(path2)
 
-        self.setLayout(vbox)
-        sld.valueChanged.connect(lcd.display)
-        
-        self.setGeometry(300, 300, 250, 150)
-        self.setWindowTitle('Signal & slot')
-        self.show()
         
 
 if __name__ == '__main__':

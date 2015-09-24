@@ -47,16 +47,14 @@ class PathFinder(QWidget):
             self.grid.width = self.width
             self.grid.height = self.height
             self.grid.initUI()
-            self.resize(QSize(0, 0))
         else: 
             self.grid.clean()
 
         # came_from, cost_so_far = self.aStar(self.grid)
-        # self.backTrack(self.grid, came_from)
-        came_from = self.dfs(self.grid, self.grid.begin, self.grid.finish)
-        for next in came_from:
-            if next.kind != 'Begin' and next.kind != "Finish":
-                next.setColor("black")
+        # self.backTrackAStar(self.grid, came_from)
+
+        shortest = self.dfs(self.grid, self.grid.begin, self.grid.finish)
+        self.backTrackDfs(shortest)
 
     def destroy(self):
         for position in Grid.positions:
@@ -67,7 +65,6 @@ class PathFinder(QWidget):
                 if land is not None:
                     self.grid.map.removeWidget(land)
                     land.deleteLater()
-
 
     def heuristic(self, a, b):
         (x1, y1) = a
@@ -97,19 +94,28 @@ class PathFinder(QWidget):
                     priority = new_cost + self.heuristic(grid.finish.position, next.position)
                     heappush(frontier,(priority, next))
                     came_from[next] = current[1]
-
-                    if next.kind != 'Begin' and next.kind != 'Finish':
-                        next.setColor("DarkCyan")
-                    if current[1].kind != 'Begin' and current[1].kind != 'Finish':
-                        current[1].setColor("DarkSlateGray")
+                    next.safeSetColor("DarkCyan")
+                    current[1].safeSetColor("DarkSlateGray")
         return came_from, cost_so_far
 
-    def backTrack(self, grid, came_from):
+    def backTrackAStar(self, grid, came_from):
         if grid.finish in came_from:
             land = grid.finish
             while came_from[land] != grid.begin:
                 came_from[land].setColor("black")
                 land = came_from[land]
+
+    def backTrackDfs(self,shortest):
+        previous = self.grid.begin
+        cost_so_far = {}
+        cost_so_far[previous] = 0
+        previous.setText(str(cost_so_far[previous]))
+        for next in shortest:
+            if next.kind != 'Begin' and next.kind != "Finish":
+                next.setColor("black")
+            cost_so_far[next] = self.grid.getCost(previous, next) + cost_so_far[previous]
+            next.setText(str(cost_so_far[next]))
+            previous = next
 
     def dfs(self, grid, start, end, path = [], shortest = None):
         path = path + [start]
@@ -117,6 +123,7 @@ class PathFinder(QWidget):
             return path
         for next in grid.getNeighbors(start):
             if next not in path and next.isValid():
+                next.safeSetColor("DarkSlateGray")
                 if shortest == None or len(path) < len(shortest):
                     newPath = self.dfs(grid, next, end, path, shortest)
                     if newPath != None:
@@ -145,6 +152,10 @@ class Land(QPushButton):
     def setColor(self, color):
         self.setStyleSheet("background-color:" + color + "; color: white;")
 
+    def safeSetColor(self, color):
+        if self.isValid and self.kind != 'Begin' and self.kind != 'Finish':
+            self.setStyleSheet("background-color:" + color + "; color: white;")
+    
     def isValid(self):
         if self.kind != 'Edge' and self.kind != 'Wall':
             return True
@@ -185,15 +196,14 @@ class Grid(QFrame):
         for position in Grid.positions:
             if position[0] == 10 and position[1] < 15:
                 land = Land(position, 'Wall')
-            elif position[0] == self.width - 1 or position[0] == 0 or position[1] == self.height - 1 or position[1] == 0 :
-                land = Land(position,'Edge')
+            # elif position[0] == self.width - 1 or position[0] == 0 or position[1] == self.height - 1 or position[1] == 0 :
+            #     land = Land(position,'Edge')
             else:
                 land = Land(position,'Default')
             self.map.addWidget(land, *position)
             land.clicked.connect(self.landClicked)
 
         self.finish = self.getLand(self.width - 2 , self.height - 2)
-        # self.finish = self.getLand(18 ,15)
         self.finish.setKind("Finish")
 
         self.begin = self.getLand(1,1)
@@ -219,7 +229,9 @@ class Grid(QFrame):
         Grid.cost = cost
 
     def getCost(self, land1, land2):
-        if land1.position[0] - land2.position[0] == 0:
+        if land1 == land2:
+            return 0
+        elif land1.position[0] - land2.position[0] == 0:
             return self.cost[1] + land2.envCost
         else:
             if land1.position[1] - land2.position[1] == 0:
@@ -267,8 +279,8 @@ class Settings(QFrame):
 
     def initUI(self):
         box = QVBoxLayout(self)
-        validator = QDoubleValidator(1, 999, 5)
-        validatorSize = QIntValidator(1, 40)
+        validator = QIntValidator(1, 200)
+        validatorSize = QIntValidator(1, 30)
 
         lblWidth = QLabel('Width')
         self.width = QLineEdit('20')
