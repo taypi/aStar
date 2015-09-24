@@ -106,16 +106,17 @@ class PathFinder(QWidget):
                 land = came_from[land]
 
     def backTrackDfs(self,shortest):
-        previous = self.grid.begin
-        cost_so_far = {}
-        cost_so_far[previous] = 0
-        previous.setText(str(cost_so_far[previous]))
-        for next in shortest:
-            if next.kind != 'Begin' and next.kind != "Finish":
-                next.setColor("black")
-            cost_so_far[next] = self.grid.getCost(previous, next) + cost_so_far[previous]
-            next.setText(str(cost_so_far[next]))
-            previous = next
+        if shortest:
+            previous = self.grid.begin
+            cost_so_far = {}
+            cost_so_far[previous] = 0
+            previous.setText(str(cost_so_far[previous]))
+            for next in shortest:
+                if next.kind != 'Begin' and next.kind != "Finish":
+                    next.setColor("black")
+                cost_so_far[next] = self.grid.getCost(previous, next) + cost_so_far[previous]
+                next.setText(str(cost_so_far[next]))
+                previous = next
 
     def dfs(self, grid, start, end, path = [], shortest = None):
         path = path + [start]
@@ -194,16 +195,18 @@ class Grid(QFrame):
         Grid.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
         
         for position in Grid.positions:
-            if position[0] == 10 and position[1] < 15:
-                land = Land(position, 'Wall')
-            # elif position[0] == self.width - 1 or position[0] == 0 or position[1] == self.height - 1 or position[1] == 0 :
-            #     land = Land(position,'Edge')
+            # Coloca uma parede no meio do mapa para teste
+            # if position[0] == 10 and position[1] < 15:
+            #     land = Land(position, 'Wall')
+            if position[0] == self.width - 1 or position[0] == 0 or position[1] == self.height - 1 or position[1] == 0 :
+                land = Land(position,'Edge')
             else:
                 land = Land(position,'Default')
             self.map.addWidget(land, *position)
             land.clicked.connect(self.landClicked)
 
         self.finish = self.getLand(self.width - 2 , self.height - 2)
+        # self.finish = self.getLand(18 ,15)
         self.finish.setKind("Finish")
 
         self.begin = self.getLand(1,1)
