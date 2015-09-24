@@ -6,7 +6,7 @@ import sys, sip
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QStyleFactory, QGridLayout,
      QPushButton, QApplication, QLineEdit, QFrame, QLabel, QVBoxLayout, QMainWindow,
      QMessageBox)
-from PyQt5.QtGui import (QIntValidator)
+from PyQt5.QtGui import (QIntValidator, QDoubleValidator)
 from PyQt5.QtCore import (Qt, pyqtSignal, QObject, QSize)
 
 from heapq import *
@@ -51,10 +51,10 @@ class PathFinder(QWidget):
         else: 
             self.grid.clean()
 
-        # came_from, cost_so_far = self.aStar(self.grid)
-        # self.backTrack(self.grid, came_from)
-        came_from, to_cross = self.dfs(self.grid)
+        came_from, cost_so_far = self.aStar(self.grid)
         self.backTrack(self.grid, came_from)
+        # came_from, to_cross = self.dfs(self.grid)
+        # self.backTrack(self.grid, came_from)
 
     def destroy(self):
         for position in Grid.positions:
@@ -87,7 +87,7 @@ class PathFinder(QWidget):
 
             for next in grid.getNeighbors(current[1]):
                 new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next)
-                if (next.kind != 'Wall' and next.kind != 'Edge') and (
+                if (next.isValid()) and (
                     next not in cost_so_far or new_cost < cost_so_far[next]):
                     
                     cost_so_far[next] = new_cost
@@ -109,46 +109,58 @@ class PathFinder(QWidget):
                 came_from[land].setColor("black")
                 land = came_from[land]
 
-    def dfs(self, grid):
-        crossed = [] #l
-        to_cross = [] #q
-        best_path = []
-        came_from = {}
-        cost_so_far = {}
-        cost_so_far[grid.begin] = 0
-        cost_of_best_path = 0
+    def dfs(self, grid, start, end, path = [], shortest = None):
+        path = path + [start]
+        if start == end:
+            return path
+        for next in grid.getNeighbors(start):
+            if next not in path:
+                if shortest = None: or len(path) < len(shortest):
+                    newPath = dfs(self, grid, end, path, shortest)
+                    if newPath != None:
+                        shortest = newPath
+        return shortest
+        
+    # def dfs(self, grid):
+    #     crossed = [] #l
+    #     to_cross = [] #q
+    #     best_path = []
+    #     came_from = {}
+    #     cost_so_far = {}
+    #     cost_so_far[grid.begin] = 0
+    #     cost_of_best_path = 0
 
-        # Precisa adicionar antes? ainda nem processou!
-        crossed.append(grid.begin)
-        to_cross.append(grid.begin)
+    #     # Precisa adicionar antes? ainda nem processou!
+    #     crossed.append(grid.begin)
+    #     to_cross.append(grid.begin)
 
-        while to_cross:
-            land = to_cross.pop()
-            neighbors = grid.getNeighbors(land)
+    #     while to_cross:
+    #         land = to_cross.pop()
+    #         neighbors = grid.getNeighbors(land)
 
-            for next in neighbors:
-                if next == grid.finish:
-                    came_from[next] = land
-                    cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
-                    next.setText(str(cost_so_far[land]))
+    #         for next in neighbors:
+    #             if next == grid.finish:
+    #                 came_from[next] = land
+    #                 cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
+    #                 next.setText(str(cost_so_far[land]))
 
-                    if not cost_of_best_path or cost_of_best_path > cost_so_far[grid.finish]:
-                        cost_of_best_path = cost_so_far[grid.finish]
-                        best_path = came_from
-                        crossed.pop() #Retira o ultimo
-                        crossed.pop() #Retira o penultimo
-                elif next.kind != 'Wall' and next.kind != 'Edge' and next not in crossed:
-                    crossed.append(next)
-                    to_cross.append(next)
-                    came_from[next] = land
-                    cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
-                    next.setText(str(cost_so_far[land]))
-                    if next != grid.begin:
-                        next.setColor("DarkCyan")
-                elif next.kind != 'Wall' and next.kind != 'Edge':
-                    if next != grid.begin:
-                        next.setColor("DarkSlateGray")
-        return best_path, cost_so_far
+    #                 if not cost_of_best_path or cost_of_best_path > cost_so_far[grid.finish]:
+    #                     cost_of_best_path = cost_so_far[grid.finish]
+    #                     best_path = came_from
+    #                     crossed.pop() #Retira o ultimo
+    #                     crossed.pop() #Retira o penultimo
+    #             elif next.isValid() and next not in crossed:
+    #                 crossed.append(next)
+    #                 to_cross.append(next)
+    #                 came_from[next] = land
+    #                 cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
+    #                 next.setText(str(cost_so_far[land]))
+    #                 if next != grid.begin:
+    #                     next.setColor("DarkCyan")
+    #             elif next.isValid():
+    #                 if next != grid.begin:
+    #                     next.setColor("DarkSlateGray")
+    #     return best_path, cost_so_far
 
     def setSize(width, height):
         PathFinder.width = width
@@ -171,6 +183,12 @@ class Land(QPushButton):
 
     def setColor(self, color):
         self.setStyleSheet("background-color:" + color + "; color: white;")
+
+    def isValid(self):
+        if self.kind != 'Edge' and self.kind != 'Wall':
+            return True
+        else
+            return False
 
     def __lt__(self, other):
         return self.position < other.position
@@ -201,7 +219,6 @@ class Grid(QFrame):
         self.initUI()
 
     def initUI(self):
-
         Grid.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
         
         for position in Grid.positions:
@@ -221,8 +238,6 @@ class Grid(QFrame):
         self.begin = self.getLand(1,1)
         self.begin.setKind("Begin")
 
-        self.resize(QSize(0, 0))
-
     def getLand(self, x, y):
         return self.map.itemAtPosition(x, y).widget()
 
@@ -240,7 +255,6 @@ class Grid(QFrame):
 
     def setCost(cost):
         Grid.cost = cost
-
 
     def getCost(self, land1, land2):
         if land1.position[0] - land2.position[0] == 0:
@@ -291,9 +305,8 @@ class Settings(QFrame):
 
     def initUI(self):
         box = QVBoxLayout(self)
-        validator = QIntValidator(1, 999)
+        validator = QDoubleValidator(1, 999, 5)
         validatorSize = QIntValidator(1, 40)
-
 
         lblWidth = QLabel('Width')
         self.width = QLineEdit('20')
@@ -332,10 +345,10 @@ class Settings(QFrame):
     def sendClicked(self):
         if (self.costH.text() != '' and self.costV.text() != '' and self.costD.text() != '' and
             self.width.text() != '' and self.height.text() != ''):
-            value = [int(self.costH.text()), int(self.costV.text()), int(self.costD.text())]
+            value = [float(self.costH.text()), float(self.costV.text()), float(self.costD.text())]
             Grid.setCost(value)
             if int(self.width.text()) > 3 and int(self.height.text()) > 3:
-                PathFinder.setSize(int(self.width.text()), int(self.height.text()))
+                PathFinder.setSize(int(self.height.text()), int(self.width.text()))
             else:
                 QMessageBox.question(self, 'ERRO:',
                 "Width and Height has to be bigger than 3!", QMessageBox.Ok)
