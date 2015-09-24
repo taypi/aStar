@@ -16,8 +16,8 @@ class Communicate(QObject):
 
 class PathFinder(QWidget):
     c = Communicate()
-    width = 20
-    height = 20
+    width = 7
+    height = 7
     def __init__(self):
         super().__init__()
         self.box = QHBoxLayout(self)
@@ -54,7 +54,9 @@ class PathFinder(QWidget):
         # came_from, cost_so_far = self.aStar(self.grid)
         # self.backTrack(self.grid, came_from)
         came_from = self.dfs(self.grid, self.grid.begin, self.grid.finish)
-        self.backTrack(self.grid, came_from)
+        for next in came_from:
+            if next.kind != 'Begin' and next.kind != "Finish":
+                next.setColor("black")
 
     def destroy(self):
         for position in Grid.positions:
@@ -114,54 +116,12 @@ class PathFinder(QWidget):
         if start == end:
             return path
         for next in grid.getNeighbors(start):
-            if next not in path:
+            if next not in path and next.isValid():
                 if shortest == None or len(path) < len(shortest):
-                    newPath = dfs(self, grid, end, path, shortest)
+                    newPath = self.dfs(grid, next, end, path, shortest)
                     if newPath != None:
                         shortest = newPath
         return shortest
-
-
-    # def dfs(self, grid):
-    #     crossed = [] #l
-    #     to_cross = [] #q
-    #     best_path = []
-    #     came_from = {}
-    #     cost_so_far = {}
-    #     cost_so_far[grid.begin] = 0
-    #     cost_of_best_path = 0
-
-    #     # Precisa adicionar antes? ainda nem processou!
-    #     crossed.append(grid.begin)
-    #     to_cross.append(grid.begin)
-
-    #     while to_cross:
-    #         land = to_cross.pop()
-    #         neighbors = grid.getNeighbors(land)
-
-    #         for next in neighbors:
-    #             if next == grid.finish:
-    #                 came_from[next] = land
-    #                 cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
-    #                 next.setText(str(cost_so_far[land]))
-
-    #                 if not cost_of_best_path or cost_of_best_path > cost_so_far[grid.finish]:
-    #                     cost_of_best_path = cost_so_far[grid.finish]
-    #                     best_path = came_from
-    #                     crossed.pop() #Retira o ultimo
-    #                     crossed.pop() #Retira o penultimo
-    #             elif next.isValid() and next not in crossed:
-    #                 crossed.append(next)
-    #                 to_cross.append(next)
-    #                 came_from[next] = land
-    #                 cost_so_far[next] = cost_so_far[land] + grid.getCost(land, next)
-    #                 next.setText(str(cost_so_far[land]))
-    #                 if next != grid.begin:
-    #                     next.setColor("DarkCyan")
-    #             elif next.isValid():
-    #                 if next != grid.begin:
-    #                     next.setColor("DarkSlateGray")
-    #     return best_path, cost_so_far
 
     def setSize(width, height):
         PathFinder.width = width
@@ -204,8 +164,8 @@ class Grid(QFrame):
     cost = [1,1,1]
     envCost = 0
     positions = 0
-    width = 20
-    height = 20
+    width = 4
+    height = 4
 
     def __init__(self, w, h):
         super().__init__()
@@ -244,14 +204,15 @@ class Grid(QFrame):
 
     def getNeighbors(self,land):
         neighbors = []
-        neighbors.append(self.getLand(land.position[0]-1, land.position[1]-1))
-        neighbors.append(self.getLand(land.position[0]-1, land.position[1]))
-        neighbors.append(self.getLand(land.position[0]-1, land.position[1]+1))
-        neighbors.append(self.getLand(land.position[0], land.position[1]-1))
-        neighbors.append(self.getLand(land.position[0], land.position[1]+1))
-        neighbors.append(self.getLand(land.position[0]+1, land.position[1]-1))
-        neighbors.append(self.getLand(land.position[0]+1, land.position[1]))
-        neighbors.append(self.getLand(land.position[0]+1, land.position[1]+1))
+        if land:
+            neighbors.append(self.getLand(land.position[0]-1, land.position[1]-1))
+            neighbors.append(self.getLand(land.position[0]-1, land.position[1]))
+            neighbors.append(self.getLand(land.position[0]-1, land.position[1]+1))
+            neighbors.append(self.getLand(land.position[0], land.position[1]-1))
+            neighbors.append(self.getLand(land.position[0], land.position[1]+1))
+            neighbors.append(self.getLand(land.position[0]+1, land.position[1]-1))
+            neighbors.append(self.getLand(land.position[0]+1, land.position[1]))
+            neighbors.append(self.getLand(land.position[0]+1, land.position[1]+1))
         return neighbors
 
     def setCost(cost):
