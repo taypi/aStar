@@ -13,6 +13,7 @@ from heapq import *
 
 class Communicate(QObject): # cria aum sinal para mudanca da land
     landChanged = pyqtSignal()
+    settingChanged = pyqtSignal()
 
 class PathFinder(QWidget):
     c = Communicate() # cria  um sinal quando a land muda
@@ -26,13 +27,16 @@ class PathFinder(QWidget):
         self.box = QHBoxLayout(self) # cria uma box para receber os widgets
 
         self.gridAStar = Grid(self.width, self.height) # cria um grid para admin os widgets
+        self.gridAStar.changed.connect(self.reDoAStar) # quando a land muda chama o reDo
         self.gridAStar.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
 
         self.gridDfs = Grid(self.width, self.height)
+        self.gridDfs.changed.connect(self.reDoDfs) # quando a land muda chama o reDo
         self.dfsDestroyed = False
         self.gridDfs.setFrameShape(QFrame.StyledPanel)
 
         self.right = Settings(self.gridAStar, self.gridDfs)  # right rrecebe as congiguracoes de campo
+        self.right.changed.connect(self.reDo) # quando a land muda chama o reDo
         self.right.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
 
         self.splitterV = QSplitter(Qt.Vertical) #reorganiza os qFrame's de acordo com o splitter
@@ -48,8 +52,6 @@ class PathFinder(QWidget):
         self.setWindowTitle('Path Finder')
 
         self.reDo() #  chama a classe para refazer
-        self.c.landChanged.connect(self.reDo) # quando a land muda chama o reDo
-
         self.show()
 
     def reDo(self):        
@@ -115,65 +117,63 @@ class PathFinder(QWidget):
     def aStar(self, grid):
         frontier = []
         heappush(frontier,(0, grid.begin)) # push do começo
-        came_from = {}
+        came_from = {} #dicionario de onde as lands vieram
         cost_so_far = {} # dicionario do custo das lands ate entao
-        cost_so_far[grid.begin] = 0 # custo da land no come
+        cost_so_far[grid.begin] = 0 # custo da land de start
 
         while frontier: # enquanto o frontier nao for vazio
             current = heappop(frontier) # iterador que consome o frontier
 
-            if current[1] == grid.finish: # passo base
+            if current[1] == grid.finish: # passo base -- sai do while se o current for o finish
                 break
 
-            for next in grid.getNeighbors(current[1]):  # itera com o vizinhos do proximo
-                new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next) # re calculates the new cost
-                if (next.isValid()) and ( # if (is not wall and  not edge)
-                    next not in cost_so_far or new_cost < cost_so_far[next]): #and (next is not in cost_so_far ou new_cost < cost_so_far[next] )
+            for next in grid.getNeighbors(current[1]):  # itera com o vizinhos do start
+                new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next) # recalcula o novo custo
+                if (next.isValid()) and ( # nao eh parede nem fronteira &&
+                    next not in cost_so_far or new_cost < cost_so_far[next]): #o next nao foi visitado ou novo custo menor que custo ate o next
 
                     cost_so_far[next] = new_cost # atualiza o custo da proxima land
                     next.setText(str(new_cost)) # mostra esse custo na land
-                    priority = new_cost + self.heuristic(grid.finish.position, next.position) # analisa o melhor caminho para ir  ???
-                    heappush(frontier,(priority, next)) # adiciona a frontier a aproxima land com sua prioridade
-                    came_from[next] = current[1] # atualiza o path
-                    next.safeSetColor("DarkCyan") # visitou
-                    current[1].safeSetColor("DarkSlateGray") # pisou
+                    priority = new_cost + self.heuristic(grid.finish.position, next.position) # analisa o melhor caminho para ir, atraves do peso da heurista + peso do caminho
+                    heappush(frontier,(priority, next)) # adiciona em frontier a aproxima land com sua prioridade
+                    came_from[next] = current[1] # atualiza o path, indicando o novo "pai" da land
+                    next.safeSetColor("DarkCyan") # nao iterou os "vizinhos"
+                    current[1].safeSetColor("DarkSlateGray") # iterou os "vizinhos"
         return came_from, cost_so_far
 
     def backTrackAStar(self, grid, came_from):
         if grid.finish in came_from: # se o path achou o final
             land = grid.finish       # start do iterador
-            while came_from[land] != grid.begin: # enquanto ele nao marcou o comeco
-                came_from[land].setColor("black") # pinta de "caminho final"
+            while came_from[land] != grid.begin: # enquanto ele nao chegar ao comeco
+                came_from[land].setColor("black") # pinta de onde ele veio
                 land = came_from[land] # itera
                 
     def backTrackDfs(self, shortest, best_cost):
-        if shortest:
+        if shortest: # se shortest nao eh vazio
             last_cost = 0
-            last = shortest.pop(0)
+            last = shortest.pop(0) # retorna o primeiro elemento do menor caminho 
             last_cost = [best_cost[last]].pop()
-            # print(last_cost)
-            last.setText(str(last_cost))
-            while shortest:
-                # print(last.position)
-                next = shortest.pop(0)
-                next.safeSetColor("black")
-                last_cost = self.gridDfs.getCost(last, next) + last_cost
-                next.setText(str(last_cost))
+            last.setText(str(last_cost)) # imprime o custo da land
+            while shortest: # enquanto ele nao for vazio
+                next = shortest.pop(0) # itera pelo menor caminho
+                next.safeSetColor("black") # pinta de "menor caminho"
+                last_cost = self.gridDfs.getCost(last, next) + last_cost  # atualiza o custo  da land
+                next.setText(str(last_cost)) # imprime o valor dessa land do menor caminho
                 last = next
 
     def dfs(self, grid, cost_so_far, start, end, path = [], shortest = None, best_cost = None):
-        path = path + [start]
-        if start != grid.begin:
-            cost_so_far[start] = grid.getCost(path[-2], start) + cost_so_far[path[-2]]
+        path = path + [start] # atualiza o path
+        if start != grid.begin: # begin nao tem antecessor
+            cost_so_far[start] = grid.getCost(path[-2], start) + cost_so_far[path[-2]] # custo[start] = custo entre as lands + custo até a anterior
         if start == end:
-            return path, cost_so_far
-        for next in grid.getNeighbors(start):
-            if next not in path and next.isValid():
-                next.safeSetColor("DarkSlateGray")
-                if shortest == None or cost_so_far[start] < best_cost[grid.finish]:
-                    newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost)
-                    if newPath != None:
-                        shortest = newPath
+            return path, cost_so_far # se achou o final retorna o caminho com seu custo 
+        for next in grid.getNeighbors(start): # itera todos os vizinhos desse start especifico
+            if next not in path and next.isValid(): # se o essa land nao esta no caminho passado, para evitar ciclos
+                next.safeSetColor("DarkSlateGray") # pisou
+                if shortest == None or cost_so_far[start] < best_cost[grid.finish]: # se a primeira vez que roda ou se o custo da até a land eh menor que o custo do melhor caminho
+                    newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost) # atualiza o novo caminho e seu custo
+                    if newPath != None: # se a recursao retornou um caminho, quer dizer que econtrou um caminho melhor que o anterior
+                        shortest = newPath #atualiza o path e seu custo
                         best_cost = new_cost_so_far
         return shortest, best_cost
 
@@ -220,6 +220,7 @@ class Grid(QFrame):
     #custo = [Horizontal, Vertical, Diagonal]
     cost = [1,1,1]
     positions = 0
+    changed = pyqtSignal()
 
     def __init__(self, w, h):
         super().__init__()
@@ -312,7 +313,7 @@ class Grid(QFrame):
                 land.setKind("Sand")
             elif land.kind == "Sand":
                 land.setKind("Default")
-        PathFinder.c.landChanged.emit()
+            self.changed.emit()
 
     def clean(self):
         for position in self.positions:
@@ -321,6 +322,7 @@ class Grid(QFrame):
             land.setKind(land.kind)
 
 class Settings(QFrame):
+    changed = pyqtSignal()
     def __init__(self, gridAStar, gridDfs):
         super().__init__()
         self.gridAStar = gridAStar
@@ -377,7 +379,7 @@ class Settings(QFrame):
             else:
                 QMessageBox.question(self, 'ERRO:',
                 "Width and Height has to be bigger than 3!", QMessageBox.Ok)
-            PathFinder.c.landChanged.emit()
+            self.changed.emit()
         else:
             QMessageBox.question(self, 'ERRO:',
             "Some field is blank!", QMessageBox.Ok)
