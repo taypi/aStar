@@ -16,8 +16,8 @@ class Communicate(QObject):
 
 class PathFinder(QWidget):
     c = Communicate()
-    width = 7
-    height = 7
+    width = 5
+    height = 5
     def __init__(self):
         super().__init__()
         self.box = QHBoxLayout(self)
@@ -41,6 +41,7 @@ class PathFinder(QWidget):
 
         self.show()
 
+
     def reDo(self):
         if self.grid.width != self.width or self.grid.height != self.height:            
             self.destroy()
@@ -52,9 +53,35 @@ class PathFinder(QWidget):
 
         # came_from, cost_so_far = self.aStar(self.grid)
         # self.backTrackAStar(self.grid, came_from)
+        
+        cost_so_far = {}
+        cost_so_far[self.grid.begin] = 0
+        shortest, best_cost = self.dfs(self.grid, cost_so_far, self.grid.begin, self.grid.finish)
+        self.backTrackDfs(shortest, best_cost)
 
-        shortest = self.dfs(self.grid, self.grid.begin, self.grid.finish)
-        self.backTrackDfs(shortest)
+    def backTrackDfs(self, shortest, best_cost):
+        if shortest:
+            for next in shortest:
+                next.safeSetColor("black")
+                next.setText(str(best_cost[next]))
+                previous = next
+
+    def dfs(self, grid, cost_so_far, start, end, path = [], shortest = None, best_cost = None):
+        path = path + [start]
+        if start != grid.begin:
+            cost_so_far[start] = grid.getCost(path[-2], start) + cost_so_far[path[-2]]
+        if start == end:
+            return path, cost_so_far
+        for next in grid.getNeighbors(start):
+            if next not in path and next.isValid():
+                # cost_so_far[next] = grid.getCost(start, next) + cost_so_far[start]
+                next.safeSetColor("DarkSlateGray")
+                if shortest == None or cost_so_far[start] < best_cost[grid.finish]:
+                    newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost)
+                    if newPath != None:
+                        shortest = newPath
+                        best_cost = new_cost_so_far
+        return shortest, best_cost
 
     def destroy(self):
         for position in Grid.positions:
@@ -105,31 +132,6 @@ class PathFinder(QWidget):
                 came_from[land].setColor("black")
                 land = came_from[land]
 
-    def backTrackDfs(self,shortest):
-        if shortest:
-            previous = self.grid.begin
-            cost_so_far = {}
-            cost_so_far[previous] = 0
-            previous.setText(str(cost_so_far[previous]))
-            for next in shortest:
-                if next.kind != 'Begin' and next.kind != "Finish":
-                    next.setColor("black")
-                cost_so_far[next] = self.grid.getCost(previous, next) + cost_so_far[previous]
-                next.setText(str(cost_so_far[next]))
-                previous = next
-
-    def dfs(self, grid, start, end, path = [], shortest = None):
-        path = path + [start]
-        if start == end:
-            return path
-        for next in grid.getNeighbors(start):
-            if next not in path and next.isValid():
-                next.safeSetColor("DarkSlateGray")
-                if shortest == None or len(path) < len(shortest):
-                    newPath = self.dfs(grid, next, end, path, shortest)
-                    if newPath != None:
-                        shortest = newPath
-        return shortest
 
     def setSize(width, height):
         PathFinder.width = width
@@ -183,7 +185,8 @@ class Grid(QFrame):
         super().__init__()
         Grid.width = w
         Grid.height = h
-
+        self.cost_so_far = {}
+        self.cost_so_far[self.begin] = 0
         self.map = QGridLayout()
         self.map.setHorizontalSpacing(0)
         self.map.setVerticalSpacing(0)
@@ -286,13 +289,13 @@ class Settings(QFrame):
         validatorSize = QIntValidator(1, 30)
 
         lblWidth = QLabel('Width')
-        self.width = QLineEdit('20')
+        self.width = QLineEdit('5')
         self.width.setValidator(validatorSize)
         box.addWidget(lblWidth)
         box.addWidget(self.width)
 
         lblHeight = QLabel('Height')
-        self.height = QLineEdit('20')
+        self.height = QLineEdit('5')
         self.height.setValidator(validatorSize)
         box.addWidget(lblHeight)
         box.addWidget(self.height)
@@ -322,7 +325,7 @@ class Settings(QFrame):
     def sendClicked(self):
         if (self.costH.text() != '' and self.costV.text() != '' and self.costD.text() != '' and
             self.width.text() != '' and self.height.text() != ''):
-            value = [float(self.costH.text()), float(self.costV.text()), float(self.costD.text())]
+            value = [int(self.costH.text()), int(self.costV.text()), int(self.costD.text())]
             Grid.setCost(value)
             if int(self.width.text()) > 3 and int(self.height.text()) > 3:
                 PathFinder.setSize(int(self.height.text()), int(self.width.text()))
@@ -333,8 +336,6 @@ class Settings(QFrame):
         else:
             QMessageBox.question(self, 'ERRO:',
             "Some field is blank!", QMessageBox.Ok)
-
-    
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

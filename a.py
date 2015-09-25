@@ -31,6 +31,12 @@ class AThread(QThread):
             print("Increasing")
             count += 1
 
+def usingQThread():
+    app = QApplication([])
+    thread = AThread()
+    thread.finished.connect(app.exit)
+    thread.start()
+    sys.exit(app.exec_())
 # Subclassing QObject and using moveToThread
 # http://blog.qt.digia.com/blog/2007/07/05/qthreads-no-longer-abstract
 class SomeObject(QObject):
@@ -61,16 +67,10 @@ class Runnable(QRunnable):
         app.quit()
 
 
-def usingQThread():
-    app = QCoreApplication([])
-    thread = AThread()
-    thread.finished.connect(app.exit)
-    thread.start()
-    sys.exit(app.exec_())
 
 def usingMoveToThread():
     app = QCoreApplication([])
-    objThread = QtCore.QThread()
+    objThread = QThread()
     obj = SomeObject()
     obj.moveToThread(objThread)
     obj.finished.connect(objThread.quit)
@@ -86,6 +86,6 @@ def usingQRunnable():
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
-    usingQThread()
-    #usingMoveToThread()
+    # usingQThread()
+    usingMoveToThread()
     #usingQRunnable()
