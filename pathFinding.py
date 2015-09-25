@@ -16,8 +16,8 @@ class Communicate(QObject): # cria aum sinal para mudanca da land
 
 class PathFinder(QWidget):
     c = Communicate() # cria  um sinal quando a land muda
-    width = 7
-    height = 7
+    width = 20
+    height = 20
     def __init__(self): #construtor da classe
         super().__init__() # super prover o uso dos metodos da classe herdada
         self.box = QHBoxLayout(self) # cria uma box para receber os widgets
@@ -50,11 +50,11 @@ class PathFinder(QWidget):
         else:           # reconstroi quando ocorre um evento diferente de mudar o tamanho da box
             self.grid.clean()
 
-        # came_from, cost_so_far = self.aStar(self.grid)    #roda a*
-        # self.backTrackAStar(self.grid, came_from) # chama o backtrack da da*
+        came_from, cost_so_far = self.aStar(self.grid)    #roda a*
+        self.backTrackAStar(self.grid, came_from) # chama o backtrack da da*
 
-        shortest = self.dfs(self.grid, self.grid.begin, self.grid.finish) #roda a dfs
-        self.backTrackDfs(shortest) # chama o backtrack da dfs
+        # shortest = self.dfs(self.grid, self.grid.begin, self.grid.finish) #roda a dfs
+        # self.backTrackDfs(shortest) # chama o backtrack da dfs
 
     def destroy(self): # deleta o todos os lands do campo
         for position in Grid.positions:
@@ -138,10 +138,10 @@ class PathFinder(QWidget):
         PathFinder.height = height
 
 class Land(QPushButton):
-    colorMap = {'Edge': ('gray', 9999999), 'Default': ('green', 0), 'Wall': ('gray', 9999999), 'Begin': ('red', 0), 'Finish': ('blue',0)}
+    colorMap = {'Edge': ('gray', 1), 'Default': ('green', 1), 'Wall': ('gray', 1), 'Begin': ('red', 1), 'Finish': ('blue', 1), 'Sand': ('Tan', 2),'Water': ('DodgerBlue', 3)}
 
     def __init__(self, position, kind):
-        super().__init__('')
+        super().__init__()
         self.position = position
         self.setKind(kind)
         self.setFixedSize(30,30)
@@ -178,8 +178,6 @@ class Grid(QFrame):
     cost = [1,1,1]
     envCost = 0
     positions = 0
-    width = 4
-    height = 4
 
     def __init__(self, w, h):
         super().__init__()
@@ -237,12 +235,12 @@ class Grid(QFrame):
         if land1 == land2:
             return 0
         elif land1.position[0] - land2.position[0] == 0:
-            return self.cost[1] + land2.envCost
+            return self.cost[1]*land2.envCost
         else:
             if land1.position[1] - land2.position[1] == 0:
-                return self.cost[0] + land2.envCost
+                return self.cost[0]*land2.envCost
             else:
-                return self.cost[2] + land2.envCost
+                return self.cost[2]*land2.envCost
 
     def landClicked(self):
         land = self.sender()
@@ -263,10 +261,14 @@ class Grid(QFrame):
                 land.setKind("Finish")
                 self.finish = land
                 self.flagFinish = False
-            elif land.kind == "Wall":
-                land.setKind("Default")
             elif land.kind == "Default":
                 land.setKind("Wall")
+            elif land.kind == "Wall":
+                land.setKind("Water")
+            elif land.kind == "Water":
+                land.setKind("Sand")
+            elif land.kind == "Sand":
+                land.setKind("Default")
         PathFinder.c.landChanged.emit()
 
     def clean(self):
