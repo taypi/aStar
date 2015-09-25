@@ -66,6 +66,17 @@ class PathFinder(QWidget):
                 next.setText(str(best_cost[next]))
                 previous = next
 
+    # def backTrackDfs(self, shortest, best_cost):
+    #     if shortest:
+    #         last = shortest.pop()
+    #         last.setText(str(best_cost[last]))
+    #         while shortest:
+    #             print(last.position)
+    #             next = shortest.pop()
+    #             next.safeSetColor("black")
+    #             next.setText(str(- self.grid.getCost(last, next) + best_cost[last]))
+    #             last = next
+
     def dfs(self, grid, cost_so_far, start, end, path = [], shortest = None, best_cost = None):
         path = path + [start]
         if start != grid.begin:
