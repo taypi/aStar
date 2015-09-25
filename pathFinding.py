@@ -20,12 +20,16 @@ class PathFinder(QWidget):
     height = 5
     def __init__(self): #construtor da classe
         super().__init__() # super prover o uso dos metodos da classe herdada
+        self.doIt()
+
+    def doIt(self):
         self.box = QHBoxLayout(self) # cria uma box para receber os widgets
 
         self.gridAStar = Grid(self.width, self.height) # cria um grid para admin os widgets
         self.gridAStar.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
 
         self.gridDfs = Grid(self.width, self.height)
+        self.dfsDestroyed = False
         self.gridDfs.setFrameShape(QFrame.StyledPanel)
 
         self.right = Settings(self.gridAStar, self.gridDfs)  # right rrecebe as congiguracoes de campo
@@ -43,50 +47,54 @@ class PathFinder(QWidget):
         self.setLayout(self.box) # organiza tudo de acordo com o layout da box
         self.setWindowTitle('Path Finder')
 
-        print ("AStar 1")
-        for (i,j) in self.gridAStar.positions:
-            print (self.gridAStar.getLand(i,j).position)
-        print ("DFS 1")
-        for (i,j) in self.gridDfs.positions:
-            print (self.gridDfs.getLand(i,j).position)
-
         self.reDo() #  chama a classe para refazer
         self.c.landChanged.connect(self.reDo) # quando a land muda chama o reDo
 
         self.show()
 
+    def reDo(self):        
+        self.reDoAStar()
+        self.reDoDfs()
 
-    def reDo(self):  # reconstroi a UI
-        if self.gridAStar.width != self.width or self.gridAStar.height != self.height:  # reconstroi tudo quando o box muda de tamanho
+    def reDoAStar(self):  # reconstroi a UI
+        if self.sizeHasChangeAStar():  # reconstroi tudo quando o box muda de tamanho
             self.destroy(self.gridAStar)
             self.gridAStar.width = self.width
             self.gridAStar.height = self.height
             self.gridAStar.initUI()
-            came_from, cost_so_far = self.aStar(self.gridAStar)
-            self.backTrackAStar(self.gridAStar, came_from)
-            
-            if self.width < 7 and self.height < 7:
-                self.destroy(self.gridDfs)
+
+        else:
+            self.gridAStar.clean()
+
+        came_from, cost_so_far = self.aStar(self.gridAStar)
+        self.backTrackAStar(self.gridAStar, came_from)
+
+
+    def reDoDfs(self):
+        if self.width < 8 and self.height < 8:
+            if self.sizeHasChangeDfs() or self.dfsDestroyed:
+                if not self.dfsDestroyed:
+                    self.destroy(self.gridDfs)
+                    self.dfsDestroyed = True
                 self.gridDfs.width = self.width
                 self.gridDfs.height = self.height
-                self.gridDfs.initUI()   
-                cost_so_far = {}
-                cost_so_far[self.gridDfs.begin] = 0
-                shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
-                self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
-
-        else:           # reconstroi quando ocorre um evento diferente de mudar o tamanho da box
-            self.gridAStar.clean()
-            came_from, cost_so_far = self.aStar(self.gridAStar)
-            self.backTrackAStar(self.gridAStar, came_from)
-            if self.width < 7 and self.height < 7:
+                self.gridDfs.initUI()
+                self.dfsDestroyed = False
+            else:
                 self.gridDfs.clean()
-                cost_so_far = {}
-                cost_so_far[self.gridDfs.begin] = 0
-                shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
-                self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
+            cost_so_far = {}
+            cost_so_far[self.gridDfs.begin] = 0
+            shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
+            self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
+        elif not self.dfsDestroyed:
+            self.destroy(self.gridDfs)
+            self.dfsDestroyed = True
+    
+    def sizeHasChangeAStar(self):
+        return (self.gridAStar.width != self.width or self.gridAStar.height != self.height)
 
-        
+    def sizeHasChangeDfs(self):
+        return (self.gridDfs.width != self.width or self.gridDfs.height != self.height)
 
 
     def destroy(self, grid): # deleta o todos os lands do campo
