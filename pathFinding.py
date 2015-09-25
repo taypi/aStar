@@ -59,39 +59,6 @@ class PathFinder(QWidget):
         shortest, best_cost = self.dfs(self.grid, cost_so_far, self.grid.begin, self.grid.finish) #roda a dfs
         self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
 
-    def backTrackDfs(self, shortest, best_cost):
-        if shortest:
-            for next in shortest:
-                next.safeSetColor("black")
-                next.setText(str(best_cost[next]))
-                previous = next
-
-    # def backTrackDfs(self, shortest, best_cost):
-    #     if shortest:
-    #         last = shortest.pop()
-    #         last.setText(str(best_cost[last]))
-    #         while shortest:
-    #             print(last.position)
-    #             next = shortest.pop()
-    #             next.safeSetColor("black")
-    #             next.setText(str(- self.grid.getCost(last, next) + best_cost[last]))
-    #             last = next
-
-    def dfs(self, grid, cost_so_far, start, end, path = [], shortest = None, best_cost = None):
-        path = path + [start]
-        if start != grid.begin:
-            cost_so_far[start] = grid.getCost(path[-2], start) + cost_so_far[path[-2]]
-        if start == end:
-            return path, cost_so_far
-        for next in grid.getNeighbors(start):
-            if next not in path and next.isValid():
-                next.safeSetColor("DarkSlateGray")
-                if shortest == None or cost_so_far[start] < best_cost[grid.finish]:
-                    newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost)
-                    if newPath != None:
-                        shortest = newPath
-                        best_cost = new_cost_so_far
-        return shortest, best_cost
 
     def destroy(self): # deleta o todos os lands do campo
         for position in Grid.positions:
@@ -141,6 +108,37 @@ class PathFinder(QWidget):
             while came_from[land] != grid.begin: # enquanto ele nao marcou o comeco
                 came_from[land].setColor("black") # pinta de "caminho final"
                 land = came_from[land] # itera
+                
+    def backTrackDfs(self, shortest, best_cost):
+        if shortest:
+            last_cost = 0
+            last = shortest.pop(0)
+            last_cost = [best_cost[last]].pop()
+            print(last_cost)
+            last.setText(str(last_cost))
+            while shortest:
+                print(last.position)
+                next = shortest.pop(0)
+                next.safeSetColor("black")
+                last_cost = self.grid.getCost(last, next) + last_cost
+                next.setText(str(last_cost))
+                last = next
+
+    def dfs(self, grid, cost_so_far, start, end, path = [], shortest = None, best_cost = None):
+        path = path + [start]
+        if start != grid.begin:
+            cost_so_far[start] = grid.getCost(path[-2], start) + cost_so_far[path[-2]]
+        if start == end:
+            return path, cost_so_far
+        for next in grid.getNeighbors(start):
+            if next not in path and next.isValid():
+                next.safeSetColor("DarkSlateGray")
+                if shortest == None or cost_so_far[start] < best_cost[grid.finish]:
+                    newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost)
+                    if newPath != None:
+                        shortest = newPath
+                        best_cost = new_cost_so_far
+        return shortest, best_cost
 
     def setSize(width, height):
         PathFinder.width = width
