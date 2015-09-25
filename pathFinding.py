@@ -131,10 +131,9 @@ class PathFinder(QWidget):
                 new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next) # recalcula o novo custo
                 if (next.isValid()) and ( # nao eh parede nem fronteira &&
                     next not in cost_so_far or new_cost < cost_so_far[next]): #o next nao foi visitado ou novo custo menor que custo ate o next
-
                     cost_so_far[next] = new_cost # atualiza o custo da proxima land
                     next.setText(str(new_cost)) # mostra esse custo na land
-                    priority = new_cost + self.heuristic(grid.finish.position, next.position) # analisa o melhor caminho para ir, atraves do peso da heurista + peso do caminho
+                    priority = new_cost + grid.getGridCost() * self.heuristic(grid.finish.position, next.position) # analisa o melhor caminho para ir, atraves do peso da heurista + peso do caminho
                     heappush(frontier,(priority, next)) # adiciona em frontier a aproxima land com sua prioridade
                     came_from[next] = current[1] # atualiza o path, indicando o novo "pai" da land
                     next.safeSetColor("DarkCyan") # nao iterou os "vizinhos"
@@ -274,6 +273,9 @@ class Grid(QFrame):
 
     def setCost(cost):
         Grid.cost = cost
+
+    def getGridCost(self):
+        return (self.cost[0] + self.cost[1] + self.cost[2])/3
 
     def getCost(self, land1, land2):
         if land1 == land2:
