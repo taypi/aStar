@@ -16,45 +16,57 @@ class Communicate(QObject): # cria aum sinal para mudanca da land
 
 class PathFinder(QWidget):
     c = Communicate() # cria  um sinal quando a land muda
-    width = 20
-    height = 20
+    width = 5
+    height = 5
     def __init__(self): #construtor da classe
         super().__init__() # super prover o uso dos metodos da classe herdada
         self.box = QHBoxLayout(self) # cria uma box para receber os widgets
 
-        self.grid = Grid(self.width, self.height) # cria um grid para admin os widgets
-        self.grid.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
+        self.gridAStar = Grid(self.width, self.height) # cria um grid para admin os widgets
+        self.gridAStar.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
+
+        self.gridDfs = Grid(self.width, self.height)
+        self.gridDfs.setFrameShape(QFrame.StyledPanel)
 
         self.right = Settings()  # right rrecebe as congiguracoes de campo
         self.right.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
 
-        self.splitter = QSplitter(Qt.Horizontal) #reorganiza os qFrame's de acordo com o splitter
-        self.splitter.addWidget(self.grid)
-        self.splitter.addWidget(self.right)
+        self.splitterV = QSplitter(Qt.Vertical) #reorganiza os qFrame's de acordo com o splitter
+        self.splitterV.addWidget(self.gridAStar)
+        self.splitterV.addWidget(self.gridDfs)
 
-        self.box.addWidget(self.splitter) # adiciona o splitter ao boox
+        self.splitterH = QSplitter(Qt.Horizontal)
+        self.splitterH.addWidget(self.splitterV)
+        self.splitterH.addWidget(self.right)
+
+        self.box.addWidget(self.splitterH) # adiciona o splitter ao boox
         self.setLayout(self.box) # organiza tudo de acordo com o layout da box
         self.setWindowTitle('Path Finder')
 
-        self.reDo() #  chama a classe para refazer 
+        self.reDo() #  chama a classe para refazer
         self.c.landChanged.connect(self.reDo) # quando a land muda chama o reDo
 
         self.show()
 
     def reDo(self):  # reconstroi a UI
-        if self.grid.width != self.width or self.grid.height != self.height:  # reconstroi tudo quando o box muda de tamanho       
+        if self.gridAStar.width != self.width or self.gridAStar.height != self.height:  # reconstroi tudo quando o box muda de tamanho
             self.destroy()
-            self.grid.width = self.width
-            self.grid.height = self.height
-            self.grid.initUI()
+            self.gridAStar.width = self.width
+            self.gridAStar.height = self.height
+            self.gridAStar.initUI()
+            self.gridDfs.width = self.width
+            self.gridDfs.height = self.height
+            self.gridDfs.initUI()
         else:           # reconstroi quando ocorre um evento diferente de mudar o tamanho da box
-            self.grid.clean()
+            self.gridAStar.clean()
+            self.gridDfs.clean()
 
-        came_from, cost_so_far = self.aStar(self.grid)    #roda a*
-        self.backTrackAStar(self.grid, came_from) # chama o backtrack da da*
 
-        # shortest = self.dfs(self.grid, self.grid.begin, self.grid.finish) #roda a dfs
-        # self.backTrackDfs(shortest) # chama o backtrack da dfs
+        came_from, cost_so_far = self.aStar(self.gridAStar)    #roda a*
+        self.backTrackAStar(self.gridAStar, came_from) # chama o backtrack da da*
+
+        shortest = self.dfs(self.gridDfs, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
+        self.backTrackDfs(self.gridDfs, shortest) # chama o backtrack da dfs
 
     def destroy(self): # deleta o todos os lands do campo
         for position in Grid.positions:
@@ -73,7 +85,7 @@ class PathFinder(QWidget):
 
     def aStar(self, grid):
         frontier = []
-        heappush(frontier,(0, grid.begin)) # push do começo 
+        heappush(frontier,(0, grid.begin)) # push do começo
         came_from = {}
         cost_so_far = {} # dicionario do custo das lands ate entao
         cost_so_far[grid.begin] = 0 # custo da land no come
@@ -84,44 +96,43 @@ class PathFinder(QWidget):
             if current[1] == grid.finish: # passo base
                 break
 
-            for next in grid.getNeighbors(current[1]):  # itera com o vizinhos do proximo 
+            for next in grid.getNeighbors(current[1]):  # itera com o vizinhos do proximo
                 new_cost = cost_so_far[current[1]] + grid.getCost(current[1], next) # re calculates the new cost
                 if (next.isValid()) and ( # if (is not wall and  not edge)
                     next not in cost_so_far or new_cost < cost_so_far[next]): #and (next is not in cost_so_far ou new_cost < cost_so_far[next] )
-                    
+
                     cost_so_far[next] = new_cost # atualiza o custo da proxima land
                     next.setText(str(new_cost)) # mostra esse custo na land
                     priority = new_cost + self.heuristic(grid.finish.position, next.position) # analisa o melhor caminho para ir  ???
-                    heappush(frontier,(priority, next)) # adiciona a frontier a aproxima land com sua prioridade 
+                    heappush(frontier,(priority, next)) # adiciona a frontier a aproxima land com sua prioridade
                     came_from[next] = current[1] # atualiza o path
                     next.safeSetColor("DarkCyan") # visitou
                     current[1].safeSetColor("DarkSlateGray") # pisou
         return came_from, cost_so_far
 
-    def backTrackAStar(self, grid, came_from): 
+    def backTrackAStar(self, grid, came_from):
         if grid.finish in came_from: # se o path achou o final
             land = grid.finish       # start do iterador
             while came_from[land] != grid.begin: # enquanto ele nao marcou o comeco
                 came_from[land].setColor("black") # pinta de "caminho final"
                 land = came_from[land] # itera
 
-    def backTrackDfs(self,shortest):
-
+    def backTrackDfs(self, grid, shortest):
         if shortest:
-            previous = self.grid.begin # pega o comeco 
+            previous = grid.begin # pega o comeco
             cost_so_far = {}
             cost_so_far[previous] = 0
             previous.setText(str(cost_so_far[previous])) # enumara o custo da land ate entao
             for next in shortest:
                 if next.kind != 'Begin' and next.kind != "Finish": #pinta todo caminho que nao seja comeco e final
                     next.setColor("black")
-                cost_so_far[next] = self.grid.getCost(previous, next) + cost_so_far[previous]#atualiza o custo da procima land baseado na anterior
-                next.setText(str(cost_so_far[next])) 
+                cost_so_far[next] = grid.getCost(previous, next) + cost_so_far[previous]#atualiza o custo da procima land baseado na anterior
+                next.setText(str(cost_so_far[next]))
                 previous = next  # troca para procima land
 
 
-    def dfs(self, grid, start, end, path = [], shortest = None): 
-        path = path + [start]     
+    def dfs(self, grid, start, end, path = [], shortest = None):
+        path = path + [start]
         if start == end:
             return path
         for next in grid.getNeighbors(start):
@@ -149,7 +160,6 @@ class Land(QPushButton):
     def setKind(self,kind):
         self.kind = kind
         self.setColor(self.colorMap[kind][0])
-        self.envCost = self.colorMap[kind][1]
         self.setText('')
 
     def setColor(self, color):
@@ -158,7 +168,7 @@ class Land(QPushButton):
     def safeSetColor(self, color):
         if self.isValid and self.kind != 'Begin' and self.kind != 'Finish':
             self.setStyleSheet("background-color:" + color + "; color: white;")
-    
+
     def isValid(self):
         if self.kind != 'Edge' and self.kind != 'Wall':
             return True
@@ -176,7 +186,6 @@ class Grid(QFrame):
     flagFinish = False
     #custo = [Horizontal, Vertical, Diagonal]
     cost = [1,1,1]
-    envCost = 0
     positions = 0
 
     def __init__(self, w, h):
@@ -188,12 +197,12 @@ class Grid(QFrame):
         self.map.setHorizontalSpacing(0)
         self.map.setVerticalSpacing(0)
         self.setLayout(self.map)
-        
+
         self.initUI()
 
     def initUI(self):
         Grid.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
-        
+
         for position in Grid.positions:
             # Coloca uma parede no meio do mapa para teste
             # if position[0] == 10 and position[1] < 15:
@@ -235,12 +244,12 @@ class Grid(QFrame):
         if land1 == land2:
             return 0
         elif land1.position[0] - land2.position[0] == 0:
-            return self.cost[1]*land2.envCost
+            return self.cost[1]*land2.colorMap[land2.kind][1]
         else:
             if land1.position[1] - land2.position[1] == 0:
-                return self.cost[0]*land2.envCost
+                return self.cost[0]*land2.colorMap[land2.kind][1]
             else:
-                return self.cost[2]*land2.envCost
+                return self.cost[2]*land2.colorMap[land2.kind][1]
 
     def landClicked(self):
         land = self.sender()
@@ -290,13 +299,13 @@ class Settings(QFrame):
         validatorSize = QIntValidator(1, 30)
 
         lblWidth = QLabel('Width')
-        self.width = QLineEdit('20')
+        self.width = QLineEdit('')
         self.width.setValidator(validatorSize)
         box.addWidget(lblWidth)
         box.addWidget(self.width)
 
         lblHeight = QLabel('Height')
-        self.height = QLineEdit('20')
+        self.height = QLineEdit('')
         self.height.setValidator(validatorSize)
         box.addWidget(lblHeight)
         box.addWidget(self.height)
@@ -338,7 +347,7 @@ class Settings(QFrame):
             QMessageBox.question(self, 'ERRO:',
             "Some field is blank!", QMessageBox.Ok)
 
-    
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
