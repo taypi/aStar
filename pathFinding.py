@@ -65,18 +65,25 @@ class PathFinder(QWidget):
         came_from, cost_so_far = self.aStar(self.gridAStar)    #roda a*
         self.backTrackAStar(self.gridAStar, came_from) # chama o backtrack da da*
 
-        shortest = self.dfs(self.gridDfs, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
-        self.backTrackDfs(self.gridDfs, shortest) # chama o backtrack da dfs
+        if self.width < 7 and self.width < 7:
+            shortest = self.dfs(self.gridDfs, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
+            self.backTrackDfs(self.gridDfs, shortest) # chama o backtrack da dfs
 
     def destroy(self): # deleta o todos os lands do campo
         for position in Grid.positions:
             (x,y) = position
-            landT = self.grid.map.itemAtPosition(x, y)
-            if landT is not None:
-                land = landT.widget()
-                if land is not None:
-                    self.grid.map.removeWidget(land)
-                    land.deleteLater()
+            landA = self.gridAStar.map.itemAtPosition(x, y)
+            landD = self.gridDfs.map.itemAtPosition(x, y)
+            if landA is not None:
+                landA = landA.widget()
+                if landA is not None:
+                    self.gridDfs.map.removeWidget(landA)
+                    landA.deleteLater()
+            if landD is not None:
+                landD = landD.widget()
+                if landD is not None:
+                    self.gridDfs.map.removeWidget(landD)
+                    landD.deleteLater()
 
     def heuristic(self, a, b): # calcula o H ( F = G + H)
         (x1, y1) = a
@@ -149,7 +156,7 @@ class PathFinder(QWidget):
         PathFinder.height = height
 
 class Land(QPushButton):
-    colorMap = {'Edge': ('gray', 1), 'Default': ('green', 1), 'Wall': ('gray', 1), 'Begin': ('red', 1), 'Finish': ('blue', 1), 'Sand': ('Tan', 2),'Water': ('DodgerBlue', 3)}
+    colorMap = {'Edge': ('gray', 1), 'Default': ('green', 1), 'Wall': ('gray', 1), 'Begin': ('red', 1), 'Finish': ('blue', 1)}#, 'Sand': ('Tan', 2),'Water': ('DodgerBlue', 3)}
 
     def __init__(self, position, kind):
         super().__init__()
