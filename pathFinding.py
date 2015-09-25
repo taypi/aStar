@@ -74,7 +74,6 @@ class PathFinder(QWidget):
             return path, cost_so_far
         for next in grid.getNeighbors(start):
             if next not in path and next.isValid():
-                # cost_so_far[next] = grid.getCost(start, next) + cost_so_far[start]
                 next.safeSetColor("DarkSlateGray")
                 if shortest == None or cost_so_far[start] < best_cost[grid.finish]:
                     newPath, new_cost_so_far = self.dfs(grid, cost_so_far, next, end, path, shortest, best_cost)
@@ -275,8 +274,6 @@ class Grid(QFrame):
             (x, y) = position
             land = self.getLand(x, y)
             land.setKind(land.kind)
-            # if land.kind != 'Wall' and land.kind != 'Begin' and land.kind != 'Finish' and land.kind != 'Edge':
-            #     land.setKind('Default')
 
 class Settings(QFrame):
     def __init__(self):
