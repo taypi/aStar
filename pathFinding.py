@@ -28,7 +28,7 @@ class PathFinder(QWidget):
         self.gridDfs = Grid(self.width, self.height)
         self.gridDfs.setFrameShape(QFrame.StyledPanel)
 
-        self.right = Settings()  # right rrecebe as congiguracoes de campo
+        self.right = Settings(self.gridAStar, self.gridDfs)  # right rrecebe as congiguracoes de campo
         self.right.setFrameShape(QFrame.StyledPanel) # seta o formato do frame para um quadrado
 
         self.splitterV = QSplitter(Qt.Vertical) #reorganiza os qFrame's de acordo com o splitter
@@ -43,6 +43,13 @@ class PathFinder(QWidget):
         self.setLayout(self.box) # organiza tudo de acordo com o layout da box
         self.setWindowTitle('Path Finder')
 
+        print ("AStar 1")
+        for (i,j) in self.gridAStar.positions:
+            print (self.gridAStar.getLand(i,j).position)
+        print ("DFS 1")
+        for (i,j) in self.gridDfs.positions:
+            print (self.gridDfs.getLand(i,j).position)
+
         self.reDo() #  chama a classe para refazer
         self.c.landChanged.connect(self.reDo) # quando a land muda chama o reDo
 
@@ -51,41 +58,46 @@ class PathFinder(QWidget):
 
     def reDo(self):  # reconstroi a UI
         if self.gridAStar.width != self.width or self.gridAStar.height != self.height:  # reconstroi tudo quando o box muda de tamanho
-            self.destroy()
+            self.destroy(self.gridAStar)
             self.gridAStar.width = self.width
             self.gridAStar.height = self.height
-            self.gridDfs.width = self.width
-            self.gridDfs.height = self.height
             self.gridAStar.initUI()
-            self.gridDfs.initUI()
+            came_from, cost_so_far = self.aStar(self.gridAStar)
+            self.backTrackAStar(self.gridAStar, came_from)
+            
+            if self.width < 7 and self.height < 7:
+                self.destroy(self.gridDfs)
+                self.gridDfs.width = self.width
+                self.gridDfs.height = self.height
+                self.gridDfs.initUI()   
+                cost_so_far = {}
+                cost_so_far[self.gridDfs.begin] = 0
+                shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
+                self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
+
         else:           # reconstroi quando ocorre um evento diferente de mudar o tamanho da box
             self.gridAStar.clean()
-            self.gridDfs.clean()
+            came_from, cost_so_far = self.aStar(self.gridAStar)
+            self.backTrackAStar(self.gridAStar, came_from)
+            if self.width < 7 and self.height < 7:
+                self.gridDfs.clean()
+                cost_so_far = {}
+                cost_so_far[self.gridDfs.begin] = 0
+                shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
+                self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
 
-        came_from, cost_so_far = self.aStar(self.gridAStar)
-        self.backTrackAStar(self.gridAStar, came_from)
         
-        cost_so_far = {}
-        cost_so_far[self.gridDfs.begin] = 0
-        shortest, best_cost = self.dfs(self.gridDfs, cost_so_far, self.gridDfs.begin, self.gridDfs.finish) #roda a dfs
-        self.backTrackDfs(shortest, best_cost) # chama o backtrack da dfs
 
 
-    def destroy(self): # deleta o todos os lands do campo
-        for position in Grid.positions:
+    def destroy(self, grid): # deleta o todos os lands do campo
+        for position in grid.positions:
             (x,y) = position
-            landA = self.gridAStar.map.itemAtPosition(x, y)
-            landD = self.gridDfs.map.itemAtPosition(x, y)
-            if landA is not None:
-                landA = landA.widget()
-                if landA is not None:
-                    self.gridDfs.map.removeWidget(landA)
-                    landA.deleteLater()
-            if landD is not None:
-                landD = landD.widget()
-                if landD is not None:
-                    self.gridDfs.map.removeWidget(landD)
-                    landD.deleteLater()
+            landT = grid.map.itemAtPosition(x, y)
+            if landT is not None:
+                land = landT.widget()
+                if land is not None:
+                    grid.map.removeWidget(land)
+                    land.deleteLater()
 
     def heuristic(self, a, b): # calcula o H ( F = G + H)
         (x1, y1) = a
@@ -131,10 +143,10 @@ class PathFinder(QWidget):
             last_cost = 0
             last = shortest.pop(0)
             last_cost = [best_cost[last]].pop()
-            print(last_cost)
+            # print(last_cost)
             last.setText(str(last_cost))
             while shortest:
-                print(last.position)
+                # print(last.position)
                 next = shortest.pop(0)
                 next.safeSetColor("black")
                 last_cost = self.gridDfs.getCost(last, next) + last_cost
@@ -203,8 +215,8 @@ class Grid(QFrame):
 
     def __init__(self, w, h):
         super().__init__()
-        Grid.width = w
-        Grid.height = h
+        self.width = w
+        self.height = h
         self.cost_so_far = {}
         self.cost_so_far[self.begin] = 0
         self.map = QGridLayout()
@@ -215,9 +227,9 @@ class Grid(QFrame):
         self.initUI()
 
     def initUI(self):
-        Grid.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
+        self.positions = [(i,j) for i in range(self.width) for j in range(self.height)]
 
-        for position in Grid.positions:
+        for position in self.positions:
             # Coloca uma parede no meio do mapa para teste
             # if position[0] == 10 and position[1] < 15:
             #     land = Land(position, 'Wall')
@@ -295,17 +307,20 @@ class Grid(QFrame):
         PathFinder.c.landChanged.emit()
 
     def clean(self):
-        for position in Grid.positions:
+        for position in self.positions:
             (x, y) = position
             land = self.getLand(x, y)
             land.setKind(land.kind)
 
 class Settings(QFrame):
-    def __init__(self):
+    def __init__(self, gridAStar, gridDfs):
         super().__init__()
+        self.gridAStar = gridAStar
+        self.gridDfs = gridDfs
         self.initUI()
 
     def initUI(self):
+
         box = QVBoxLayout(self)
         validator = QIntValidator(1, 200)
         validatorSize = QIntValidator(1, 30)
